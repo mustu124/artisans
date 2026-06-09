@@ -1001,7 +1001,7 @@ function Footer({ settings }: { settings: PublicSettings | null }) {
   const links = ["Home", "Shop", "About", "Contact"];
   const whatsappNumber = settings?.whatsappNumber ?? "91704474478";
   const contactDetails = {
-    address: "Pyramid Elite, Sector 86, Gurugram, 122505",
+    address: "Gurgaon",
     email: "artisanroot22@gmail.com",
     phone: "+91704474478"
   };

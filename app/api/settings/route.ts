@@ -42,7 +42,7 @@ const defaultSettings = {
   metaTitle: "Artisan Root | Cultivating Creative Spaces",
   metaDescription: "Shop macrame decor, handmade wall hangings, plant hangers, and handcraft pieces from Artisan Root.",
   storeEmail: "hello@artisanroot.in",
-  storeAddress: "India",
+  storeAddress: "Gurgaon",
   footerCopyright: "\u00A9 2025 Artisan Root",
   categories: [
     {

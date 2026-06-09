@@ -69,7 +69,7 @@ create table if not exists public.settings (
   meta_title text default '',
   meta_description text default '',
   store_email text default '',
-  store_address text default '',
+  store_address text default 'Gurgaon',
   footer_copyright text default '',
   categories jsonb not null default '[]'::jsonb,
   created_at timestamptz default now(),

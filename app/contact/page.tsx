@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "@/lib/animations";
 
 const storeDetails = {
-  address: "Pyramid Elite, Sector 86, Gurugram, 122505",
+  address: "Gurgaon",
   email: "artisanroot22@gmail.com",
   phone: "91704474478",
   refundPolicy: "15 days of return acceptable",
