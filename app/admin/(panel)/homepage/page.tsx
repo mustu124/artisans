@@ -50,7 +50,7 @@ export default function AdminHomepagePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [uploadingId, setUploadingId] = useState("");
-  const storageKey = "artisan-root-homepage-draft";
+  const storageKey = "artisan-root-homepage-draft-v2";
   const sensors = useSensors(useSensor(PointerSensor));
 
   useEffect(() => {
@@ -157,10 +157,17 @@ export default function AdminHomepagePage() {
     setIsSaving(true);
     try {
       const existing = await adminFetch<{ settings: Record<string, unknown> }>("/api/settings");
-      await adminFetch("/api/settings", {
+      const saved = await adminFetch<{ settings: SettingsPayload }>("/api/settings", {
         method: "PUT",
         body: JSON.stringify({ ...existing.data.settings, ...draft })
       });
+      setSlides(saved.data.settings.heroSlides.map((slide) => ({ ...slide, id: crypto.randomUUID() })));
+      setMobileSlides(
+        Array.from({ length: 10 }, (_, index) => {
+          const slide = saved.data.settings.mobileHeroSlides?.[index] ?? blankSlide(index + 1);
+          return { ...slide, id: crypto.randomUUID() };
+        })
+      );
       window.localStorage.removeItem(storageKey);
       toast.success("Homepage settings saved");
     } catch (error) {

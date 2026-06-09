@@ -32,7 +32,7 @@ export default function AdminSiteSettingsPage() {
   const [baseSettings, setBaseSettings] = useState<Record<string, unknown>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const storageKey = "artisan-root-site-settings-draft";
+  const storageKey = "artisan-root-site-settings-draft-v2";
 
   useEffect(() => {
     adminFetch<{ settings: Record<string, unknown> & SiteSettings }>("/api/settings")
@@ -84,10 +84,11 @@ export default function AdminSiteSettingsPage() {
   const save = async () => {
     setIsSaving(true);
     try {
-      await adminFetch("/api/settings", {
+      const saved = await adminFetch<{ settings: Record<string, unknown> & SiteSettings }>("/api/settings", {
         method: "PUT",
         body: JSON.stringify({ ...baseSettings, ...form })
       });
+      setBaseSettings(saved.data.settings);
       window.localStorage.removeItem(storageKey);
       toast.success("Site settings saved");
     } catch (error) {

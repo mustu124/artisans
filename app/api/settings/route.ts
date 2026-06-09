@@ -4,6 +4,12 @@ import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { normalizeSupabaseSettings, settingsPayloadToSupabase } from "@/lib/supabase-mappers";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+const SETTINGS_SINGLETON_ID = "00000000-0000-0000-0000-000000000001";
+const noStoreHeaders = {
+  "Cache-Control": "no-store, max-age=0"
+};
 
 const defaultSettings = {
   heroSlides: [
@@ -130,25 +136,45 @@ function withDefaultCategorySubcategories(settings: typeof defaultSettings) {
   };
 }
 
+async function getSettingsRow() {
+  const supabase = getSupabaseAdmin();
+  const singleton = await supabase
+    .from("settings")
+    .select("*")
+    .eq("id", SETTINGS_SINGLETON_ID)
+    .maybeSingle();
+
+  if (singleton.error) throw singleton.error;
+  if (singleton.data) return singleton.data;
+
+  const latest = await supabase
+    .from("settings")
+    .select("*")
+    .order("updated_at", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (latest.error) throw latest.error;
+  return latest.data;
+}
+
 export async function GET() {
   try {
     if (!isSupabaseConfigured()) {
-      return ok({ settings: withDefaultCategorySubcategories(defaultSettings), fallback: true }, "Settings loaded.");
+      return ok(
+        { settings: withDefaultCategorySubcategories(defaultSettings), fallback: true },
+        "Settings loaded.",
+        { headers: noStoreHeaders }
+      );
     }
 
-    const supabase = getSupabaseAdmin();
-    const { data: settings, error } = await supabase
-      .from("settings")
-      .select("*")
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (error) throw error;
+    const settings = await getSettingsRow();
     const normalizedSettings = normalizeSupabaseSettings(settings, defaultSettings);
     return ok(
       { settings: withDefaultCategorySubcategories(normalizedSettings as typeof defaultSettings), fallback: !settings },
-      "Settings loaded."
+      "Settings loaded.",
+      { headers: noStoreHeaders }
     );
   } catch (error) {
     return fail(error instanceof Error ? error.message : "Failed to load settings.");
@@ -162,23 +188,28 @@ export async function PUT(request: Request) {
   try {
     const payload = await request.json();
     const supabase = getSupabaseAdmin();
-    const { data: existing, error: lookupError } = await supabase
+    const existing = await getSettingsRow();
+    const normalizedExisting = normalizeSupabaseSettings(existing, defaultSettings);
+    const settingsPayload = {
+      id: SETTINGS_SINGLETON_ID,
+      ...settingsPayloadToSupabase({
+        ...normalizedExisting,
+        ...payload
+      })
+    };
+
+    const { data: settings, error } = await supabase
       .from("settings")
-      .select("id")
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (lookupError) throw lookupError;
-
-    const settingsPayload = settingsPayloadToSupabase(payload);
-    const requestBuilder = existing
-      ? supabase.from("settings").update(settingsPayload).eq("id", existing.id)
-      : supabase.from("settings").insert(settingsPayload);
-    const { data: settings, error } = await requestBuilder.select("*").single();
+      .upsert(settingsPayload, { onConflict: "id" })
+      .select("*")
+      .single();
 
     if (error) throw error;
-    return ok({ settings: normalizeSupabaseSettings(settings, defaultSettings) }, "Settings updated.");
+    return ok(
+      { settings: normalizeSupabaseSettings(settings, defaultSettings) },
+      "Settings updated.",
+      { headers: noStoreHeaders }
+    );
   } catch (error) {
     return fail(error instanceof Error ? error.message : "Failed to update settings.");
   }

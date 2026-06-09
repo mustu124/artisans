@@ -31,7 +31,7 @@ export default function AdminCategoriesPage() {
   const [baseSettings, setBaseSettings] = useState<Record<string, unknown>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const storageKey = "artisan-root-categories-draft";
+  const storageKey = "artisan-root-categories-draft-v2";
 
   useEffect(() => {
     adminFetch<{ settings: Record<string, unknown> & { categories?: CategorySetting[] } }>("/api/settings")
@@ -75,10 +75,11 @@ export default function AdminCategoriesPage() {
           .filter(Boolean)
       }));
 
-      await adminFetch("/api/settings", {
+      const saved = await adminFetch<{ settings: Record<string, unknown> }>("/api/settings", {
         method: "PUT",
         body: JSON.stringify({ ...baseSettings, categories: payloadCategories })
       });
+      setBaseSettings(saved.data.settings);
       window.localStorage.removeItem(storageKey);
       toast.success("Categories saved");
     } catch (error) {

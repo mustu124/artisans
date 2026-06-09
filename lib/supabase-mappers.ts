@@ -152,6 +152,7 @@ export function settingsPayloadToSupabase(payload: AnyRecord) {
     store_email: payload.storeEmail ?? "",
     store_address: payload.storeAddress ?? "",
     footer_copyright: payload.footerCopyright ?? "",
-    categories: payload.categories ?? []
+    categories: payload.categories ?? [],
+    updated_at: new Date().toISOString()
   };
 }
