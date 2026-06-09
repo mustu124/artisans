@@ -3,7 +3,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
-import { LogoLoadingScreen } from "@/components/LogoLoadingScreen";
 import type { GalleryItem } from "@/lib/gallery-data";
 
 const filters = [
@@ -30,10 +29,6 @@ type GalleryResponse = {
 };
 
 function optimizedMediaUrl(src: string, width = 800) {
-  if (src.includes("res.cloudinary.com") && src.includes("/image/upload/") && !src.includes("/f_auto,")) {
-    return src.replace("/image/upload/", `/image/upload/f_auto,q_auto:good,w_${width},c_limit/`);
-  }
-
   return src;
 }
 
@@ -168,14 +163,9 @@ export default function CollectionsPage() {
 }
 
 function GalleryTile({ item, onClick }: { item: GalleryItem; onClick: () => void }) {
-  const [isImageLoaded, setIsImageLoaded] = useState(false);
   const heightSeed = item.order ?? 1;
   const thumbnailSrc = item.type === "video" ? item.thumbnailUrl || "/logo.png" : item.thumbnailUrl || item.url;
   const optimizedThumbnail = thumbnailSrc === "/logo.png" ? thumbnailSrc : optimizedMediaUrl(thumbnailSrc, 720);
-
-  useEffect(() => {
-    setIsImageLoaded(false);
-  }, [optimizedThumbnail]);
 
   return (
     <motion.button
@@ -196,28 +186,8 @@ function GalleryTile({ item, onClick }: { item: GalleryItem; onClick: () => void
         sizes="(min-width: 1280px) 20vw, (min-width: 640px) 33vw, 50vw"
         loading="lazy"
         quality={78}
-        onLoad={() => setIsImageLoaded(true)}
-        onError={() => setIsImageLoaded(true)}
         className="h-auto w-full object-cover transition duration-700 group-hover:scale-[1.04]"
       />
-      <AnimatePresence>
-        {!isImageLoaded && (
-          <motion.div
-            className="pointer-events-none absolute inset-0 z-[2] flex items-center justify-center bg-artisan-cream"
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-          >
-            <motion.div
-              className="relative h-14 w-14 rounded-2xl bg-white/85 shadow-sm"
-              animate={{ scale: [1, 1.05, 1], opacity: [0.75, 1, 0.75] }}
-              transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <Image src="/logo.png" alt="" fill sizes="56px" className="object-contain p-2" />
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
       {item.type === "video" && (
         <span className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-artisan-terracotta text-xl text-white shadow-soft">
           ▶
@@ -339,9 +309,16 @@ function Lightbox({
 
 function CollectionsLoader() {
   return (
-    <LogoLoadingScreen
-      label="Loading gallery"
-      className="mt-10 min-h-[54vh] rounded-2xl border border-artisan-brown/10 bg-white/55 shadow-[0_18px_60px_rgba(92,45,10,0.08)]"
-    />
+    <div className="mt-10 columns-2 gap-4 md:columns-3 xl:columns-5">
+      {Array.from({ length: 20 }).map((_, index) => (
+        <div
+          key={index}
+          className="mb-4 break-inside-avoid rounded-2xl bg-artisan-sand"
+          style={{ height: `${index % 3 === 0 ? 280 : index % 3 === 1 ? 360 : 220}px` }}
+        >
+          <div className="h-full w-full animate-pulse rounded-2xl bg-artisan-brown/10" />
+        </div>
+      ))}
+    </div>
   );
 }

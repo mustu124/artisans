@@ -1,13 +1,14 @@
-import { assertAdmin, fail, ok } from "@/lib/api";
-import { connectToDatabase } from "@/lib/mongodb";
-import { SettingsModel } from "@/models/Settings";
+import { fail, ok } from "@/lib/api";
+import { assertAdmin } from "@/lib/admin-auth";
+import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { normalizeSupabaseSettings, settingsPayloadToSupabase } from "@/lib/supabase-mappers";
 
 export const dynamic = "force-dynamic";
 
 const defaultSettings = {
   heroSlides: [
     {
-      image: "https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&w=1600&q=85",
+      image: "/logo.png",
       title: "Handmade warmth for modern homes",
       subtitle: "Premium macrame and craft pieces for slow, soulful spaces.",
       ctaText: "Shop Now",
@@ -16,7 +17,7 @@ const defaultSettings = {
   ],
   mobileHeroSlides: [
     {
-      image: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&w=1200&q=85",
+      image: "/logo.png",
       title: "Handmade warmth for modern homes",
       subtitle: "Premium macrame and craft pieces for slow, soulful spaces.",
       ctaText: "Shop Now",
@@ -131,15 +132,22 @@ function withDefaultCategorySubcategories(settings: typeof defaultSettings) {
 
 export async function GET() {
   try {
-    const mongoUri = process.env.MONGODB_URI;
-    if (!mongoUri || mongoUri.includes("USER:PASSWORD")) {
+    if (!isSupabaseConfigured()) {
       return ok({ settings: withDefaultCategorySubcategories(defaultSettings), fallback: true }, "Settings loaded.");
     }
 
-    await connectToDatabase();
-    const settings = await SettingsModel.findOne().sort({ updatedAt: -1 }).lean();
+    const supabase = getSupabaseAdmin();
+    const { data: settings, error } = await supabase
+      .from("settings")
+      .select("*")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+    const normalizedSettings = normalizeSupabaseSettings(settings, defaultSettings);
     return ok(
-      { settings: withDefaultCategorySubcategories((settings ?? defaultSettings) as typeof defaultSettings), fallback: !settings },
+      { settings: withDefaultCategorySubcategories(normalizedSettings as typeof defaultSettings), fallback: !settings },
       "Settings loaded."
     );
   } catch (error) {
@@ -152,14 +160,25 @@ export async function PUT(request: Request) {
   if (unauthorized) return unauthorized;
 
   try {
-    await connectToDatabase();
     const payload = await request.json();
-    const existing = await SettingsModel.findOne().sort({ updatedAt: -1 });
-    const settings = existing
-      ? await SettingsModel.findByIdAndUpdate(existing._id, payload, { new: true, runValidators: true })
-      : await SettingsModel.create(payload);
+    const supabase = getSupabaseAdmin();
+    const { data: existing, error: lookupError } = await supabase
+      .from("settings")
+      .select("id")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    return ok({ settings }, "Settings updated.");
+    if (lookupError) throw lookupError;
+
+    const settingsPayload = settingsPayloadToSupabase(payload);
+    const requestBuilder = existing
+      ? supabase.from("settings").update(settingsPayload).eq("id", existing.id)
+      : supabase.from("settings").insert(settingsPayload);
+    const { data: settings, error } = await requestBuilder.select("*").single();
+
+    if (error) throw error;
+    return ok({ settings: normalizeSupabaseSettings(settings, defaultSettings) }, "Settings updated.");
   } catch (error) {
     return fail(error instanceof Error ? error.message : "Failed to update settings.");
   }

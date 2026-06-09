@@ -65,43 +65,10 @@ type HeroSlide = {
 
 const heroSlides: HeroSlide[] = [
   {
-    image:
-      "https://res.cloudinary.com/dt1ycc6wn/image/upload/v1780921056/artisan-root/products/artisan-root-handmade-piece-01.jpg",
+    image: "/logo.png",
     headline: "Handmade warmth for modern homes",
     subtitle: "Premium macrame and craft pieces for slow, soulful spaces.",
     cta: "Shop Now",
-    href: "/shop"
-  },
-  {
-    image:
-      "https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&w=2200&q=90",
-    headline: "Boho textures, quietly refined",
-    subtitle: "Natural cotton rope, earthy palettes, and silhouettes made to feel collected.",
-    cta: "Shop New Arrivals",
-    href: "/shop"
-  },
-  {
-    image:
-      "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=2200&q=90",
-    headline: "Tables dressed with craft",
-    subtitle: "Runners, mats, and coasters that turn everyday hosting into a soft ceremony.",
-    cta: "Style Your Table",
-    href: "/shop"
-  },
-  {
-    image:
-      "https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&w=2200&q=90",
-    headline: "Let every plant find its place",
-    subtitle: "Airy pot hangers and woven accents for lush, layered corners.",
-    cta: "Browse Pot Hangers",
-    href: "/shop"
-  },
-  {
-    image:
-      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=2200&q=90",
-    headline: "Light, knots, and natural calm",
-    subtitle: "Handmade lamp shades and decor that bring a golden hush to your evenings.",
-    cta: "Discover Decor",
     href: "/shop"
   }
 ];
@@ -156,10 +123,6 @@ const itemReveal = { hidden: fadeInUp.hidden, show: fadeInUp.visible };
 const scaleReveal = { hidden: fadeInScale.hidden, show: fadeInScale.visible };
 
 function optimizedMediaUrl(src: string, width = 1200) {
-  if (src.includes("res.cloudinary.com") && src.includes("/image/upload/") && !src.includes("/f_auto,")) {
-    return src.replace("/image/upload/", `/image/upload/f_auto,q_auto:good,w_${width},c_limit/`);
-  }
-
   if (src.includes("images.unsplash.com")) {
     const url = new URL(src);
     url.searchParams.set("w", String(width));
@@ -248,7 +211,6 @@ function HeroSlider({ slides }: { slides: HeroSlide[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHeroHovered, setIsHeroHovered] = useState(false);
   const [isMobileHero, setIsMobileHero] = useState(false);
-  const [loadedHeroImages, setLoadedHeroImages] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -276,21 +238,10 @@ function HeroSlider({ slides }: { slides: HeroSlide[] }) {
 
   const currentHeroSrc = optimizedMediaUrl(slides[activeIndex].image, isMobileHero ? 760 : 1500);
   const nextHeroSrc = optimizedMediaUrl(slides[(activeIndex + 1) % slides.length].image, isMobileHero ? 760 : 1500);
-  const isCurrentHeroLoaded = loadedHeroImages.has(currentHeroSrc);
-
-  const markHeroLoaded = (src: string) => {
-    setLoadedHeroImages((current) => {
-      if (current.has(src)) return current;
-      const next = new Set(current);
-      next.add(src);
-      return next;
-    });
-  };
 
   useEffect(() => {
     const nextImage = new window.Image();
     nextImage.decoding = "async";
-    nextImage.onload = () => markHeroLoaded(nextHeroSrc);
     nextImage.src = nextHeroSrc;
   }, [nextHeroSrc]);
 
@@ -327,52 +278,10 @@ function HeroSlider({ slides }: { slides: HeroSlide[] }) {
               alt={slides[activeIndex].headline}
               fetchPriority="high"
               decoding="async"
-              onLoad={() => markHeroLoaded(currentHeroSrc)}
-              onError={() => markHeroLoaded(currentHeroSrc)}
               className="h-full w-full object-cover"
-              style={{ opacity: isCurrentHeroLoaded ? 1 : 0, transition: "opacity 420ms ease" }}
             />
           </motion.div>
         </motion.div>
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {!isCurrentHeroLoaded && (
-          <motion.div
-            className="absolute inset-0 z-30 flex items-center justify-center bg-artisan-cream"
-            initial={{ opacity: 1 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.45, ease: "easeOut" }}
-            aria-hidden="true"
-          >
-            <motion.div
-              className="flex flex-col items-center gap-5"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.35, ease: "easeOut" }}
-            >
-              <motion.div
-                className="relative h-24 w-24 overflow-hidden rounded-3xl bg-white/80 p-3 shadow-[0_18px_60px_rgba(92,45,10,0.16)] ring-1 ring-artisan-brown/10"
-                animate={{ scale: [1, 1.04, 1] }}
-                transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <Image src="/logo.png" alt="" fill sizes="96px" quality={95} className="object-contain p-3" />
-              </motion.div>
-              <div className="flex items-center gap-2">
-                {[0, 1, 2].map((dot) => (
-                  <motion.span
-                    key={dot}
-                    className="h-2 w-2 rounded-full bg-artisan-terracotta"
-                    animate={{ opacity: [0.28, 1, 0.28], y: [0, -4, 0] }}
-                    transition={{ duration: 0.9, repeat: Infinity, delay: dot * 0.14, ease: "easeInOut" }}
-                  />
-                ))}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
       </AnimatePresence>
 
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/28 via-transparent to-transparent sm:from-black/58 sm:via-black/12" />

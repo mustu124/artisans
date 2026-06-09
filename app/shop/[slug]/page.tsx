@@ -25,10 +25,6 @@ type ProductsResponse = {
 };
 
 function optimizedMediaUrl(src: string, width = 1100) {
-  if (src.includes("res.cloudinary.com") && src.includes("/image/upload/") && !src.includes("/f_auto,")) {
-    return src.replace("/image/upload/", `/image/upload/f_auto,q_auto:good,w_${width},c_limit/`);
-  }
-
   return src;
 }
 

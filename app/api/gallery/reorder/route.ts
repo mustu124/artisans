@@ -1,6 +1,6 @@
-import { assertAdmin, fail, ok } from "@/lib/api";
-import { connectToDatabase } from "@/lib/mongodb";
-import { GalleryImageModel } from "@/models/GalleryImage";
+import { fail, ok } from "@/lib/api";
+import { assertAdmin } from "@/lib/admin-auth";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 type ReorderPayload = Array<{ id: string; order: number }>;
 
@@ -15,10 +15,10 @@ export async function POST(request: Request) {
       return fail("Expected an array of { id, order }.", 400);
     }
 
-    await connectToDatabase();
+    const supabase = getSupabaseAdmin();
     await Promise.all(
       payload.map((item) =>
-        GalleryImageModel.findByIdAndUpdate(item.id, { order: item.order }, { runValidators: true })
+        supabase.from("gallery").update({ order_index: item.order }).eq("id", item.id)
       )
     );
 

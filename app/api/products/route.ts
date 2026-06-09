@@ -1,14 +1,8 @@
-import { NextResponse } from "next/server";
-import { assertAdmin, fail, ok } from "@/lib/api";
-import { connectToDatabase } from "@/lib/mongodb";
-import { ProductModel } from "@/models/Product";
-import {
-  fallbackProducts,
-  filterFallbackProducts,
-  normalizeProduct,
-  slugifyProductName,
-  type StoreProduct
-} from "@/lib/product-data";
+import { fail, ok } from "@/lib/api";
+import { assertAdmin } from "@/lib/admin-auth";
+import { filterFallbackProducts, type StoreProduct } from "@/lib/product-data";
+import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { normalizeSupabaseProduct, productPayloadToSupabase } from "@/lib/supabase-mappers";
 
 export const dynamic = "force-dynamic";
 
@@ -40,11 +34,16 @@ export async function GET(request: Request) {
     const sort = searchParams.get("sort") ?? "newest";
     const page = Math.max(Number(searchParams.get("page") ?? 1), 1);
     const limit = Math.min(Math.max(Number(searchParams.get("limit") ?? 12), 1), 50);
-    const mongoUri = process.env.MONGODB_URI;
+    const supabaseConfigured = isSupabaseConfigured();
+    const canUseFallback = process.env.NODE_ENV !== "production";
     const fallbackFiltered = sortFallback(filterFallbackProducts({ category, exclude, featured }), sort);
     const paginatedFallback = fallbackFiltered.slice((page - 1) * limit, page * limit);
 
-    if (!mongoUri || mongoUri.includes("USER:PASSWORD")) {
+    if (!supabaseConfigured) {
+      if (!canUseFallback) {
+        return fail("Supabase is not configured for this deployment.", 503);
+      }
+
       return ok(
         {
           products: paginatedFallback,
@@ -57,23 +56,33 @@ export async function GET(request: Request) {
       );
     }
 
-    await connectToDatabase();
+    const supabase = getSupabaseAdmin();
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    const sortColumn =
+      sort === "price_asc" || sort === "price-asc"
+        ? "price"
+        : sort === "price_desc" || sort === "price-desc"
+          ? "price"
+          : "created_at";
+    const ascending = sort === "price_asc" || sort === "price-asc";
 
-    const query: Record<string, unknown> = { active: true };
-    if (category) query.category = category;
-    if (subcategory) query.subcategory = subcategory;
-    if (featured) query.$or = [{ isFeatured: true }, { featured: true }];
-    if (exclude) query.$and = [{ _id: { $ne: exclude } }, { slug: { $ne: exclude } }];
+    let query = supabase
+      .from("products")
+      .select("*", { count: "exact" })
+      .eq("active", true)
+      .order(sortColumn, { ascending })
+      .range(from, to);
 
-    const products = await ProductModel.find(query)
-      .sort(sortMap[sort] ?? sortMap.newest)
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .lean();
-    const total = await ProductModel.countDocuments(query);
-    const normalizedProducts = products.map((product) =>
-      normalizeProduct(product as Record<string, unknown>)
-    );
+    if (category) query = query.eq("category", category);
+    if (subcategory) query = query.eq("subcategory", subcategory);
+    if (featured) query = query.or("is_featured.eq.true,featured.eq.true");
+    if (exclude) query = query.not("id", "eq", exclude).not("slug", "eq", exclude);
+
+    const { data, error, count } = await query;
+    if (error) throw error;
+    const normalizedProducts = (data ?? []).map((product) => normalizeSupabaseProduct(product));
+    const total = count ?? normalizedProducts.length;
 
     return ok(
       {
@@ -95,7 +104,6 @@ export async function POST(request: Request) {
   if (unauthorized) return unauthorized;
 
   try {
-    await connectToDatabase();
     const payload = (await request.json()) as Record<string, unknown>;
     const name = String(payload.name ?? "");
 
@@ -103,12 +111,15 @@ export async function POST(request: Request) {
       return fail("Name, category, and price are required.", 400);
     }
 
-    const product = await ProductModel.create({
-      ...payload,
-      slug: payload.slug ?? slugifyProductName(name)
-    });
+    const supabase = getSupabaseAdmin();
+    const { data: product, error } = await supabase
+      .from("products")
+      .insert(productPayloadToSupabase(payload))
+      .select("*")
+      .single();
 
-    return ok({ product: normalizeProduct(product.toObject()) }, "Product created.", { status: 201 });
+    if (error) throw error;
+    return ok({ product: normalizeSupabaseProduct(product) }, "Product created.", { status: 201 });
   } catch (error) {
     return fail(error instanceof Error ? error.message : "Failed to create product.");
   }

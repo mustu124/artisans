@@ -1,21 +1,25 @@
-import { assertAdmin, fail, ok } from "@/lib/api";
-import { connectToDatabase } from "@/lib/mongodb";
-import { GalleryImageModel } from "@/models/GalleryImage";
+import { fail, ok } from "@/lib/api";
+import { assertAdmin } from "@/lib/admin-auth";
+import { getSupabaseAdmin } from "@/lib/supabase";
+import { galleryPayloadToSupabase, normalizeSupabaseGalleryItem } from "@/lib/supabase-mappers";
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const unauthorized = await assertAdmin();
   if (unauthorized) return unauthorized;
 
   try {
-    await connectToDatabase();
     const payload = await request.json();
-    const item = await GalleryImageModel.findByIdAndUpdate(params.id, payload, {
-      new: true,
-      runValidators: true
-    }).lean();
+    const supabase = getSupabaseAdmin();
+    const { data: item, error } = await supabase
+      .from("gallery")
+      .update(galleryPayloadToSupabase(payload))
+      .eq("id", params.id)
+      .select("*")
+      .single();
 
+    if (error) throw error;
     if (!item) return fail("Gallery item not found.", 404);
-    return ok({ item }, "Gallery item updated.");
+    return ok({ item: normalizeSupabaseGalleryItem(item) }, "Gallery item updated.");
   } catch (error) {
     return fail(error instanceof Error ? error.message : "Failed to update gallery item.");
   }
@@ -26,11 +30,17 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
   if (unauthorized) return unauthorized;
 
   try {
-    await connectToDatabase();
-    const item = await GalleryImageModel.findByIdAndDelete(params.id).lean();
+    const supabase = getSupabaseAdmin();
+    const { data: item, error } = await supabase
+      .from("gallery")
+      .delete()
+      .eq("id", params.id)
+      .select("*")
+      .single();
 
+    if (error) throw error;
     if (!item) return fail("Gallery item not found.", 404);
-    return ok({ item }, "Gallery item deleted.");
+    return ok({ item: normalizeSupabaseGalleryItem(item) }, "Gallery item deleted.");
   } catch (error) {
     return fail(error instanceof Error ? error.message : "Failed to delete gallery item.");
   }

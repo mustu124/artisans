@@ -3,9 +3,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { ProductCard, QuickViewModal } from "@/components/ProductCard";
+import { ProductCard, ProductSkeleton, QuickViewModal } from "@/components/ProductCard";
 import { ProductFilters, type ProductFiltersState } from "@/components/ProductFilters";
-import { LogoLoadingScreen } from "@/components/LogoLoadingScreen";
 import type { StoreProduct } from "@/lib/product-data";
 
 type ProductsResponse = {
@@ -310,9 +309,10 @@ function MoreLikeThisModal({
 
 function ShopPageLoader() {
   return (
-    <LogoLoadingScreen
-      label="Loading products"
-      className="min-h-[52vh] rounded-2xl border border-artisan-brown/10 bg-white/55 shadow-[0_18px_60px_rgba(92,45,10,0.08)]"
-    />
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
+      {Array.from({ length: 8 }).map((_, index) => (
+        <ProductSkeleton key={index} />
+      ))}
+    </div>
   );
 }

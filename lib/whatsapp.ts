@@ -10,13 +10,11 @@ export type CustomerInfo = {
 
 export function buildWhatsAppMessage(cartItems: CartItem[], customerInfo: CustomerInfo) {
   const ownerPhone = process.env.NEXT_PUBLIC_OWNER_WHATSAPP ?? "910000000000";
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ??
-    (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
+  const appUrl = typeof window !== "undefined" ? window.location.origin : "";
   const total = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const orderLines = cartItems
     .map((item, index) => {
-      const productUrl = `${appUrl}/shop/${item.product.slug}`;
+      const productUrl = appUrl ? `${appUrl}/shop/${item.product.slug}` : `/shop/${item.product.slug}`;
       const imageUrl = item.product.images[0]?.url;
       const variant = item.selectedVariant ? ` (${item.selectedVariant})` : "";
 

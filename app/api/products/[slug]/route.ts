@@ -1,8 +1,8 @@
-import { assertAdmin, fail, ok } from "@/lib/api";
-import { connectToDatabase } from "@/lib/mongodb";
-import { ProductModel } from "@/models/Product";
-import { fallbackProducts, normalizeProduct, slugifyProductName } from "@/lib/product-data";
-import mongoose from "mongoose";
+import { fail, ok } from "@/lib/api";
+import { assertAdmin } from "@/lib/admin-auth";
+import { fallbackProducts } from "@/lib/product-data";
+import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { normalizeSupabaseProduct, productPayloadToSupabase } from "@/lib/supabase-mappers";
 
 export const dynamic = "force-dynamic";
 
@@ -11,26 +11,32 @@ export async function GET(_: Request, { params }: { params: { slug: string } }) 
     const fallbackProduct = fallbackProducts.find(
       (product) => product.slug === params.slug || product._id === params.slug
     );
-    const mongoUri = process.env.MONGODB_URI;
+    const supabaseConfigured = isSupabaseConfigured();
+    const canUseFallback = process.env.NODE_ENV !== "production";
 
-    if (!mongoUri || mongoUri.includes("USER:PASSWORD")) {
+    if (!supabaseConfigured) {
+      if (!canUseFallback) {
+        return fail("Supabase is not configured for this deployment.", 503);
+      }
+
       if (!fallbackProduct) return fail("Product not found.", 404);
       return ok({ product: fallbackProduct, fallback: true }, "Product loaded.");
     }
 
-    await connectToDatabase();
-    const lookup = mongoose.isValidObjectId(params.slug)
-      ? { $or: [{ slug: params.slug }, { _id: params.slug }] }
-      : { slug: params.slug };
-    const product = await ProductModel.findOne({
-      active: true,
-      ...lookup
-    }).lean();
+    const supabase = getSupabaseAdmin();
+    const { data: product, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("active", true)
+      .or(`slug.eq.${params.slug},id.eq.${params.slug}`)
+      .maybeSingle();
 
-    if (!product && !fallbackProduct) return fail("Product not found.", 404);
+    if (error) throw error;
+
+    if (!product && (!canUseFallback || !fallbackProduct)) return fail("Product not found.", 404);
 
     return ok(
-      { product: product ? normalizeProduct(product as Record<string, unknown>) : fallbackProduct, fallback: !product },
+      { product: product ? normalizeSupabaseProduct(product) : fallbackProduct, fallback: !product },
       "Product loaded."
     );
   } catch (error) {
@@ -43,23 +49,26 @@ export async function PUT(request: Request, { params }: { params: { slug: string
   if (unauthorized) return unauthorized;
 
   try {
-    await connectToDatabase();
     const payload = (await request.json()) as Record<string, unknown>;
-    const update = {
-      ...payload,
-      ...(payload.name && !payload.slug ? { slug: slugifyProductName(String(payload.name)) } : {})
-    };
-    const lookup = mongoose.isValidObjectId(params.slug)
-      ? { $or: [{ slug: params.slug }, { _id: params.slug }] }
-      : { slug: params.slug };
-    const product = await ProductModel.findOneAndUpdate(
-      lookup,
-      update,
-      { new: true, runValidators: true }
-    ).lean();
+    const supabase = getSupabaseAdmin();
+    const { data: existing, error: lookupError } = await supabase
+      .from("products")
+      .select("id")
+      .or(`slug.eq.${params.slug},id.eq.${params.slug}`)
+      .maybeSingle();
 
-    if (!product) return fail("Product not found.", 404);
-    return ok({ product: normalizeProduct(product as Record<string, unknown>) }, "Product updated.");
+    if (lookupError) throw lookupError;
+    if (!existing) return fail("Product not found.", 404);
+
+    const { data: product, error } = await supabase
+      .from("products")
+      .update(productPayloadToSupabase(payload))
+      .eq("id", existing.id)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    return ok({ product: normalizeSupabaseProduct(product) }, "Product updated.");
   } catch (error) {
     return fail(error instanceof Error ? error.message : "Failed to update product.");
   }
@@ -70,14 +79,25 @@ export async function DELETE(_: Request, { params }: { params: { slug: string } 
   if (unauthorized) return unauthorized;
 
   try {
-    await connectToDatabase();
-    const lookup = mongoose.isValidObjectId(params.slug)
-      ? { $or: [{ slug: params.slug }, { _id: params.slug }] }
-      : { slug: params.slug };
-    const product = await ProductModel.findOneAndDelete(lookup).lean();
+    const supabase = getSupabaseAdmin();
+    const { data: existing, error: lookupError } = await supabase
+      .from("products")
+      .select("id")
+      .or(`slug.eq.${params.slug},id.eq.${params.slug}`)
+      .maybeSingle();
 
-    if (!product) return fail("Product not found.", 404);
-    return ok({ product: normalizeProduct(product as Record<string, unknown>) }, "Product deleted.");
+    if (lookupError) throw lookupError;
+    if (!existing) return fail("Product not found.", 404);
+
+    const { data: product, error } = await supabase
+      .from("products")
+      .delete()
+      .eq("id", existing.id)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    return ok({ product: normalizeSupabaseProduct(product) }, "Product deleted.");
   } catch (error) {
     return fail(error instanceof Error ? error.message : "Failed to delete product.");
   }

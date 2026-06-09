@@ -1,6 +1,7 @@
-import { assertAdmin, fail, ok } from "@/lib/api";
-import { connectToDatabase } from "@/lib/mongodb";
-import { OrderModel } from "@/models/Order";
+import { fail, ok } from "@/lib/api";
+import { assertAdmin } from "@/lib/admin-auth";
+import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { normalizeSupabaseOrder, orderPayloadToSupabase } from "@/lib/supabase-mappers";
 
 type OrderPayload = {
   items: Array<{
@@ -35,15 +36,21 @@ export async function GET(request: Request) {
     const status = searchParams.get("status");
     const page = Math.max(Number(searchParams.get("page") ?? 1), 1);
     const limit = Math.min(Math.max(Number(searchParams.get("limit") ?? 20), 1), 50);
-    await connectToDatabase();
+    const supabase = getSupabaseAdmin();
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    let query = supabase
+      .from("orders")
+      .select("*", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range(from, to);
 
-    const query = status ? { status } : {};
-    const orders = await OrderModel.find(query)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .lean();
-    const total = await OrderModel.countDocuments(query);
+    if (status) query = query.eq("status", status);
+
+    const { data, error, count } = await query;
+    if (error) throw error;
+    const orders = (data ?? []).map((order) => normalizeSupabaseOrder(order));
+    const total = count ?? orders.length;
 
     return ok({ orders, total, page, hasMore: page * limit < total }, "Orders loaded.");
   } catch (error) {
@@ -78,15 +85,19 @@ export async function POST(request: Request) {
       status: "pending",
       whatsappSent: Boolean(payload.whatsappSent)
     };
-    const mongoUri = process.env.MONGODB_URI;
-
-    if (!mongoUri || mongoUri.includes("USER:PASSWORD")) {
+    if (!isSupabaseConfigured()) {
       return ok({ order: { ...order, _id: orderNumber }, fallback: true }, "Order created.", { status: 201 });
     }
 
-    await connectToDatabase();
-    const createdOrder = await OrderModel.create(order);
-    return ok({ order: createdOrder }, "Order created.", { status: 201 });
+    const supabase = getSupabaseAdmin();
+    const { data: createdOrder, error } = await supabase
+      .from("orders")
+      .insert(orderPayloadToSupabase(order))
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    return ok({ order: normalizeSupabaseOrder(createdOrder) }, "Order created.", { status: 201 });
   } catch (error) {
     return fail(error instanceof Error ? error.message : "Failed to create order.");
   }

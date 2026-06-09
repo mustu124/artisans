@@ -1,14 +1,8 @@
-import { assertAdmin, fail, ok } from "@/lib/api";
-import { cloudinary } from "@/lib/cloudinary";
+import { fail, ok } from "@/lib/api";
+import { assertAdmin } from "@/lib/admin-auth";
+import { getSupabaseAdmin, SUPABASE_BUCKET } from "@/lib/supabase";
 
 const allowedTypes = ["image/jpeg", "image/png", "image/webp", "video/mp4"];
-
-type CloudinaryUploadResult = {
-  secure_url: string;
-  public_id: string;
-  width: number;
-  height: number;
-};
 
 export async function POST(request: Request) {
   const unauthorized = await assertAdmin();
@@ -29,32 +23,29 @@ export async function POST(request: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const resourceType = file.type.startsWith("video/") ? "video" : "image";
-
-    const result = await new Promise<CloudinaryUploadResult>((resolve, reject) => {
-      const upload = cloudinary.uploader.upload_stream(
-        {
-          folder: "artisan-root",
-          resource_type: resourceType
-        },
-        (error, uploadResult) => {
-          if (error || !uploadResult) {
-            reject(error ?? new Error("Upload failed."));
-            return;
-          }
-
-          resolve(uploadResult as CloudinaryUploadResult);
-        }
-      );
-
-      upload.end(buffer);
+    const extension = file.name.split(".").pop() || (resourceType === "video" ? "mp4" : "webp");
+    const safeName = file.name
+      .replace(/\.[^/.]+$/, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    const path = `${resourceType}s/${Date.now()}-${safeName}.${extension}`;
+    const supabase = getSupabaseAdmin();
+    const { error } = await supabase.storage.from(SUPABASE_BUCKET).upload(path, buffer, {
+      contentType: file.type,
+      upsert: true
     });
+
+    if (error) throw error;
+
+    const { data } = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(path);
 
     return ok(
       {
-        url: result.secure_url,
-        publicId: result.public_id,
-        width: result.width,
-        height: result.height
+        url: data.publicUrl,
+        publicId: path,
+        width: null,
+        height: null
       },
       "File uploaded."
     );

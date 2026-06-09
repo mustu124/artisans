@@ -1,7 +1,7 @@
 import { fail, ok } from "@/lib/api";
-import { connectToDatabase } from "@/lib/mongodb";
-import { ProductModel } from "@/models/Product";
-import { filterFallbackProducts, normalizeProduct } from "@/lib/product-data";
+import { filterFallbackProducts } from "@/lib/product-data";
+import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { normalizeSupabaseProduct } from "@/lib/supabase-mappers";
 
 export const dynamic = "force-dynamic";
 
@@ -14,24 +14,29 @@ export async function GET(request: Request) {
       return ok({ products: [] }, "Enter at least 2 characters.");
     }
 
-    const mongoUri = process.env.MONGODB_URI;
+    const supabaseConfigured = isSupabaseConfigured();
+    const canUseFallback = process.env.NODE_ENV !== "production";
     const fallback = filterFallbackProducts({ query }).slice(0, 8);
 
-    if (!mongoUri || mongoUri.includes("USER:PASSWORD")) {
+    if (!supabaseConfigured) {
+      if (!canUseFallback) {
+        return fail("Supabase is not configured for this deployment.", 503);
+      }
+
       return ok({ products: fallback, fallback: true }, "Search results loaded from fallback catalog.");
     }
 
-    await connectToDatabase();
-    const products = await ProductModel.find(
-      { active: true, $text: { $search: query } },
-      { score: { $meta: "textScore" } }
-    )
-      .sort({ score: { $meta: "textScore" } })
-      .limit(12)
-      .lean();
-    const normalizedProducts = products.map((product) =>
-      normalizeProduct(product as Record<string, unknown>)
-    );
+    const supabase = getSupabaseAdmin();
+    const safeQuery = query.replace(/[%_]/g, "\\$&");
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("active", true)
+      .or(`name.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%`)
+      .limit(12);
+
+    if (error) throw error;
+    const normalizedProducts = (data ?? []).map((product) => normalizeSupabaseProduct(product));
 
     return ok(
       { products: normalizedProducts, fallback: false },

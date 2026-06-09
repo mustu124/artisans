@@ -15,17 +15,12 @@ type ProductCardProps = {
 };
 
 function optimizedMediaUrl(src: string, width = 700) {
-  if (src.includes("res.cloudinary.com") && src.includes("/image/upload/") && !src.includes("/f_auto,")) {
-    return src.replace("/image/upload/", `/image/upload/f_auto,q_auto:good,w_${width},c_limit/`);
-  }
-
   return src;
 }
 
 export function ProductCard({ product, onQuickView, onMoreLikeThis }: ProductCardProps) {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
-  const [isImageLoaded, setIsImageLoaded] = useState(false);
   const { addItem, items } = useCart();
   const productHref = `/shop/${product.slug}`;
   const image = product.images[0];
@@ -38,10 +33,6 @@ export function ProductCard({ product, onQuickView, onMoreLikeThis }: ProductCar
     const wishlist = stored ? (JSON.parse(stored) as string[]) : [];
     setIsWishlisted(wishlist.includes(product._id));
   }, [product._id]);
-
-  useEffect(() => {
-    setIsImageLoaded(false);
-  }, [image?.url]);
 
   const toggleWishlist = () => {
     const stored = window.localStorage.getItem("artisan-root-wishlist");
@@ -79,30 +70,10 @@ export function ProductCard({ product, onQuickView, onMoreLikeThis }: ProductCar
               sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 50vw"
               loading="lazy"
               quality={78}
-              onLoad={() => setIsImageLoaded(true)}
-              onError={() => setIsImageLoaded(true)}
               className="object-cover"
             />
           </motion.div>
         </Link>
-        <AnimatePresence>
-          {!isImageLoaded && (
-            <motion.div
-              className="pointer-events-none absolute inset-0 z-[2] flex items-center justify-center bg-artisan-cream"
-              initial={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
-            >
-              <motion.div
-                className="relative h-14 w-14 rounded-2xl bg-white/85 shadow-sm"
-                animate={{ scale: [1, 1.05, 1], opacity: [0.75, 1, 0.75] }}
-                transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <Image src="/logo.png" alt="" fill sizes="56px" className="object-contain p-2" />
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         <motion.button
           type="button"
