@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
@@ -83,31 +82,73 @@ export default function AdminProductsPage() {
             {PRODUCT_CATEGORIES.map((item) => <option key={item}>{item}</option>)}
           </select>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-left text-sm">
-            <thead className="text-xs uppercase tracking-[0.12em] text-artisan-sage">
-              <tr><th></th><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Featured</th><th>Actions</th></tr>
-            </thead>
-            <tbody className="divide-y divide-artisan-brown/10">
-              {visibleProducts.map((product) => (
-                <tr key={product._id}>
-                  <td><input type="checkbox" checked={selected.includes(product.slug)} onChange={(e) => setSelected((cur) => e.target.checked ? [...cur, product.slug] : cur.filter((id) => id !== product.slug))} /></td>
-                  <td className="flex items-center gap-3 py-3">
-                    <Image src={getDisplayMediaUrl(product.images[0]?.url)} alt={product.name} width={48} height={48} className="h-12 w-12 rounded-xl object-cover" />
-                    <span className="font-black">{product.name}</span>
-                  </td>
-                  <td>{product.category}</td>
-                  <td>{formatCurrency(product.price)}</td>
-                  <td>{product.stockCount}</td>
-                  <td><button type="button" onClick={() => toggleFeatured(product)} className="font-black text-artisan-terracotta">{product.isFeatured ? "Yes" : "No"}</button></td>
-                  <td className="space-x-3">
-                    <Link href={`/admin/products/${product.slug}/edit`} className="font-black text-artisan-terracotta">Edit</Link>
-                    <ConfirmButton message="Delete this product?" onConfirm={() => removeProduct(product.slug)} className="font-black text-red-700">Delete</ConfirmButton>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="grid gap-3">
+          <div className="hidden rounded-xl bg-artisan-cream px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-artisan-sage xl:grid xl:grid-cols-[minmax(360px,1.7fr)_220px_120px_90px_120px_150px] xl:gap-5">
+            <span>Product</span>
+            <span>Category</span>
+            <span>Price</span>
+            <span>Stock</span>
+            <span>Featured</span>
+            <span>Actions</span>
+          </div>
+
+          {visibleProducts.map((product) => (
+            <article
+              key={product._id}
+              className="grid gap-4 rounded-2xl border border-artisan-brown/10 bg-white p-4 shadow-sm xl:grid-cols-[minmax(360px,1.7fr)_220px_120px_90px_120px_150px] xl:items-center xl:gap-5"
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <input
+                  type="checkbox"
+                  aria-label={`Select ${product.name}`}
+                  checked={selected.includes(product.slug)}
+                  onChange={(e) =>
+                    setSelected((cur) =>
+                      e.target.checked ? [...cur, product.slug] : cur.filter((id) => id !== product.slug)
+                    )
+                  }
+                  className="h-4 w-4 shrink-0"
+                />
+                <img
+                  src={getDisplayMediaUrl(product.images[0]?.url)}
+                  alt={product.name}
+                  className="h-16 w-16 shrink-0 rounded-xl bg-artisan-sand object-cover"
+                  loading="lazy"
+                />
+                <div className="min-w-0">
+                  <p className="break-words text-base font-black leading-snug text-artisan-brown">{product.name}</p>
+                  <p className="mt-1 text-xs font-bold text-stone-500 xl:hidden">{product.category}</p>
+                </div>
+              </div>
+
+              <div className="hidden text-sm font-bold text-artisan-brown xl:block">{product.category}</div>
+              <div className="text-sm font-black text-artisan-brown">
+                <span className="mr-2 text-xs uppercase tracking-[0.12em] text-artisan-sage xl:hidden">Price</span>
+                {formatCurrency(product.price)}
+              </div>
+              <div className="text-sm font-bold text-artisan-brown">
+                <span className="mr-2 text-xs uppercase tracking-[0.12em] text-artisan-sage xl:hidden">Stock</span>
+                {product.stockCount}
+              </div>
+              <button
+                type="button"
+                onClick={() => toggleFeatured(product)}
+                className="w-fit rounded-full bg-artisan-cream px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] text-artisan-terracotta"
+              >
+                {product.isFeatured ? "Yes" : "No"}
+              </button>
+              <div className="flex flex-wrap items-center gap-3">
+                <Link href={`/admin/products/${product.slug}/edit`} className="font-black text-artisan-terracotta">Edit</Link>
+                <ConfirmButton message="Delete this product?" onConfirm={() => removeProduct(product.slug)} className="font-black text-red-700">Delete</ConfirmButton>
+              </div>
+            </article>
+          ))}
+
+          {!visibleProducts.length && (
+            <div className="rounded-2xl bg-artisan-cream p-8 text-center font-bold text-artisan-brown">
+              No products match the current filters.
+            </div>
+          )}
         </div>
       </AdminSection>
     </div>

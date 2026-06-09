@@ -502,19 +502,37 @@ function CategoryCircle({ name, icon, index }: { name: string; icon: string; ind
 
 function FeaturedProducts() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { addItem, items } = useCart();
 
   useEffect(() => {
     let isMounted = true;
 
-    fetch("/api/products?featured=true")
-      .then((response) => response.json())
-      .then((data: { data?: { products: Product[] }; products?: Product[] }) => {
-        if (isMounted) setProducts(data.data?.products ?? data.products ?? []);
-      })
+    async function loadBestsellers() {
+      setIsLoading(true);
+      const featuredResponse = await fetch("/api/products?featured=true", { cache: "no-store" });
+      const featuredData = (await featuredResponse.json()) as { data?: { products: Product[] }; products?: Product[] };
+      let nextProducts = featuredData.data?.products ?? featuredData.products ?? [];
+
+      if (!nextProducts.length) {
+        const fallbackResponse = await fetch("/api/products?limit=8&sort=newest", { cache: "no-store" });
+        const fallbackData = (await fallbackResponse.json()) as { data?: { products: Product[] }; products?: Product[] };
+        nextProducts = fallbackData.data?.products ?? fallbackData.products ?? [];
+      }
+
+      if (isMounted) {
+        setProducts(nextProducts);
+        setIsLoading(false);
+      }
+    }
+
+    loadBestsellers()
       .catch(() => {
-        if (isMounted) setProducts([]);
-      });
+        if (isMounted) {
+          setProducts([]);
+          setIsLoading(false);
+        }
+      })
 
     return () => {
       isMounted = false;
@@ -538,7 +556,19 @@ function FeaturedProducts() {
         className="mx-auto mt-10 grid max-w-7xl grid-cols-2 gap-3 sm:mt-12 sm:grid-cols-3 sm:gap-4 md:gap-6 xl:grid-cols-4"
         variants={sectionReveal}
       >
-        {products.slice(0, 8).map((product) => {
+        {isLoading &&
+          Array.from({ length: 8 }).map((_, index) => (
+            <div key={index} className="overflow-hidden rounded-2xl bg-artisan-cream shadow-soft">
+              <div className="aspect-[4/5] animate-pulse bg-artisan-sand" />
+              <div className="space-y-3 p-4">
+                <div className="h-5 w-3/4 animate-pulse rounded-full bg-artisan-sand" />
+                <div className="h-7 w-1/2 animate-pulse rounded-full bg-artisan-sand" />
+                <div className="h-10 animate-pulse rounded-full bg-artisan-sand" />
+              </div>
+            </div>
+          ))}
+
+        {!isLoading && products.slice(0, 8).map((product) => {
           const cartQuantity = items
             .filter((item) => item.product._id === product._id)
             .reduce((total, item) => total + item.quantity, 0);
@@ -546,10 +576,13 @@ function FeaturedProducts() {
           return (
             <motion.article
               key={product._id}
-            variants={itemReveal}
-            whileHover={{ y: -6 }}
-            className="flex h-full flex-col overflow-hidden rounded-2xl bg-artisan-cream shadow-soft"
-          >
+              variants={itemReveal}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, amount: 0.12 }}
+              whileHover={{ y: -6 }}
+              className="flex h-full flex-col overflow-hidden rounded-2xl bg-artisan-cream shadow-soft"
+            >
             <div className="aspect-[4/5] overflow-hidden bg-artisan-sand">
               <motion.div className="relative h-full w-full" whileHover={{ scale: 1.07 }} transition={{ duration: 0.5, ease: "easeOut" }}>
                 <Image
@@ -610,6 +643,13 @@ function FeaturedProducts() {
           );
         })}
       </motion.div>
+
+      {!isLoading && !products.length && (
+        <div className="mx-auto mt-10 max-w-2xl rounded-2xl bg-artisan-cream p-8 text-center shadow-soft">
+          <h3 className="font-heading text-2xl font-bold text-artisan-brown">Products are being prepared</h3>
+          <p className="mt-2 text-sm font-bold text-stone-600">Please check the shop while bestsellers are selected.</p>
+        </div>
+      )}
 
       <motion.div variants={itemReveal} className="mt-12 text-center">
         <motion.a
