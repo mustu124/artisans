@@ -29,14 +29,22 @@ type Product = {
 type PublicSettings = {
   heroSlides?: Array<{
     image: string;
-    title: string;
+    title?: string;
+    headline?: string;
+    name?: string;
+    _id?: string;
+    id?: string;
     subtitle?: string;
     ctaText?: string;
     ctaLink?: string;
   }>;
   mobileHeroSlides?: Array<{
     image: string;
-    title: string;
+    title?: string;
+    headline?: string;
+    name?: string;
+    _id?: string;
+    id?: string;
     subtitle?: string;
     ctaText?: string;
     ctaLink?: string;
@@ -75,6 +83,7 @@ const heroSlides: HeroSlide[] = [
 ];
 
 const blockedHeroImageIds = ["wd0gqn7ea0extspvcimh"];
+const fallbackHeroHeadline = "Handmade warmth for modern homes";
 
 const categories = [
   ["Handbag", "👜"],
@@ -126,6 +135,38 @@ function optimizedMediaUrl(src: string, width = 1200) {
   return getDisplayMediaUrl(src);
 }
 
+function looksLikeDatabaseId(value?: string) {
+  if (!value) return true;
+  const normalized = value.trim();
+  const compact = normalized.replace(/[\s-]/g, "");
+
+  return (
+    /^[a-f\d]{24}$/i.test(compact) ||
+    /^[a-f\d]{32}$/i.test(compact) ||
+    /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(normalized)
+  );
+}
+
+function getHeroSlideHeadline(slide: NonNullable<PublicSettings["heroSlides"]>[number]) {
+  const candidates = [slide.title, slide.headline, slide.name].filter(Boolean) as string[];
+  return candidates.find((candidate) => !looksLikeDatabaseId(candidate)) ?? fallbackHeroHeadline;
+}
+
+const frostedTextStyle = {
+  background: "rgba(255, 248, 240, 0.52)",
+  backdropFilter: "blur(3px)",
+  WebkitBackdropFilter: "blur(3px)",
+  boxDecorationBreak: "clone",
+  WebkitBoxDecorationBreak: "clone",
+  padding: "3px 8px 5px 8px",
+  borderRadius: "4px"
+} as const;
+
+const subtitleFrostedTextStyle = {
+  ...frostedTextStyle,
+  background: "rgba(255, 248, 240, 0.40)"
+} as const;
+
 export default function HomePage() {
   const [settings, setSettings] = useState<PublicSettings | null>(null);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
@@ -136,6 +177,9 @@ export default function HomePage() {
     fetch("/api/settings", { cache: "no-store" })
       .then((response) => response.json())
       .then((payload: { data?: { settings?: PublicSettings } }) => {
+        if (process.env.NODE_ENV === "development") {
+          console.debug("Artisan Root settings response", payload);
+        }
         if (isMounted) setSettings(payload.data?.settings ?? null);
       })
       .catch(() => {
@@ -163,12 +207,11 @@ export default function HomePage() {
       ?.filter(
         (slide) =>
           slide.image &&
-          slide.title &&
           !blockedHeroImageIds.some((blockedId) => slide.image.includes(blockedId))
       )
       .map((slide) => ({
         image: slide.image,
-        headline: slide.title,
+        headline: getHeroSlideHeadline(slide),
         subtitle: slide.subtitle,
         cta: slide.ctaText || "Shop Now",
         href: slide.ctaLink || "/shop"
@@ -276,10 +319,6 @@ function HeroSlider({ slides }: { slides: HeroSlide[] }) {
         </motion.div>
       </AnimatePresence>
 
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/28 via-transparent to-transparent sm:from-black/58 sm:via-black/12" />
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-full bg-gradient-to-r from-black/42 via-black/10 to-transparent sm:w-[58%] sm:from-black/56 sm:via-black/18" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[30%] bg-gradient-to-t from-artisan-cream/28 to-transparent sm:from-black/36" />
-
       <motion.div
         className="relative z-10 flex min-h-[100svh] items-end bg-transparent px-5 pb-28 pt-24 sm:px-8 sm:pb-28 md:px-12 lg:px-20"
         variants={sectionReveal}
@@ -289,30 +328,42 @@ function HeroSlider({ slides }: { slides: HeroSlide[] }) {
         <AnimatePresence mode="wait">
           <motion.div
             key={slides[activeIndex].headline}
-            className="max-w-3xl text-white"
+            className="max-w-3xl"
             variants={sectionReveal}
             initial="hidden"
             animate="show"
             exit={{ opacity: 0, y: -18, transition: { duration: 0.35 } }}
           >
-            <motion.p variants={itemReveal} className="mb-4 text-xs font-black uppercase tracking-[0.22em] text-white/78 sm:mb-5 sm:text-sm sm:text-artisan-sand">
-              Artisan Root
+            <motion.p
+              variants={itemReveal}
+              className="mb-4 uppercase sm:mb-5"
+              style={{ color: "#c9973a", fontSize: 11, letterSpacing: "0.18em", fontWeight: 500 }}
+            >
+              <span style={frostedTextStyle}>Artisan Root</span>
             </motion.p>
             <motion.h1
               variants={itemReveal}
-              className="max-w-[15ch] font-heading text-[30px] font-bold leading-[1.02] text-white drop-shadow-[0_4px_22px_rgba(0,0,0,0.38)] sm:max-w-3xl sm:text-[44px] sm:leading-[1.04] xl:text-[60px]"
+              className="max-w-[15ch] font-heading text-[30px] font-bold leading-[1.18] sm:max-w-3xl sm:text-[44px] sm:leading-[1.15] xl:text-[60px]"
+              style={{ color: "#2C0F03" }}
             >
-              {slides[activeIndex].headline}
+              <span style={frostedTextStyle}>{slides[activeIndex].headline}</span>
             </motion.h1>
-            <motion.p variants={itemReveal} className="mt-4 max-w-[24rem] text-base font-bold leading-7 text-white/90 drop-shadow-[0_3px_14px_rgba(0,0,0,0.38)] sm:mt-5 sm:text-lg sm:font-normal sm:leading-8">
-              {slides[activeIndex].subtitle}
-            </motion.p>
+            {slides[activeIndex].subtitle && (
+              <motion.p
+                variants={itemReveal}
+                className="mt-4 max-w-[24rem] text-base font-bold leading-8 sm:mt-5 sm:text-lg sm:font-normal sm:leading-9"
+                style={{ color: "rgba(44, 15, 3, 0.85)" }}
+              >
+                <span style={subtitleFrostedTextStyle}>{slides[activeIndex].subtitle}</span>
+              </motion.p>
+            )}
             <motion.a
               variants={itemReveal}
               whileHover={{ y: -3, scale: 1.03 }}
               whileTap={{ scale: 0.98 }}
               href={slides[activeIndex].href}
-              className="mt-7 inline-flex rounded-full bg-artisan-terracotta px-7 py-3 text-sm font-black uppercase tracking-[0.16em] text-white shadow-[0_18px_45px_rgba(0,0,0,0.22)] sm:mt-8"
+              className="mt-7 inline-flex rounded-full px-7 py-2.5 text-[13px] font-black uppercase tracking-[0.1em] text-white shadow-[0_18px_45px_rgba(0,0,0,0.18)] sm:mt-8"
+              style={{ background: "#c4714a" }}
             >
               {slides[activeIndex].cta}
             </motion.a>
