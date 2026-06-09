@@ -416,6 +416,34 @@ function AnnouncementTicker({ text }: { text?: string }) {
 }
 
 function CategoriesSection({ categories }: { categories: readonly (readonly [string, string])[] }) {
+  const [categoryImages, setCategoryImages] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetch("/api/products?limit=50&sort=newest", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((payload: { data?: { products?: Product[] } }) => {
+        const products = payload.data?.products ?? [];
+        const nextImages = products.reduce<Record<string, string>>((images, product) => {
+          const imageUrl = product.images?.[0]?.url;
+          if (product.category && imageUrl && !images[product.category]) {
+            images[product.category] = imageUrl;
+          }
+          return images;
+        }, {});
+
+        if (isMounted) setCategoryImages(nextImages);
+      })
+      .catch(() => {
+        if (isMounted) setCategoryImages({});
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <motion.section
       className="px-4 py-14 sm:px-6 sm:py-[4.5rem] md:px-10 md:py-20"
@@ -447,19 +475,30 @@ function CategoriesSection({ categories }: { categories: readonly (readonly [str
       </motion.div>
 
       <motion.div
-        className="mx-auto mt-10 grid max-w-[22rem] grid-cols-3 justify-items-center gap-x-3 gap-y-5 sm:mt-12 sm:max-w-7xl sm:grid-cols-5 sm:gap-6 lg:gap-8 xl:max-w-[96rem] xl:grid-cols-10 xl:gap-8"
+        className="mx-auto mt-10 grid max-w-[23rem] grid-cols-3 justify-items-center gap-x-4 gap-y-8 sm:mt-12 sm:max-w-7xl sm:grid-cols-5 sm:gap-x-7 sm:gap-y-9 lg:gap-x-9 xl:max-w-[96rem] xl:grid-cols-10 xl:gap-x-11 xl:gap-y-10"
         variants={sectionReveal}
       >
         {categories.map(([name, icon], index) => (
-          <CategoryCircle key={name} name={name} icon={icon} index={index} />
+          <CategoryCircle key={name} name={name} icon={icon} imageUrl={categoryImages[name]} index={index} />
         ))}
       </motion.div>
     </motion.section>
   );
 }
 
-function CategoryCircle({ name, icon, index }: { name: string; icon: string; index: number }) {
+function CategoryCircle({
+  name,
+  icon,
+  imageUrl,
+  index
+}: {
+  name: string;
+  icon: string;
+  imageUrl?: string;
+  index: number;
+}) {
   const [isHovered, setIsHovered] = useState(false);
+  const displayImageUrl = imageUrl ? getDisplayMediaUrl(imageUrl) : "";
 
   return (
     <motion.a
@@ -475,26 +514,39 @@ function CategoryCircle({ name, icon, index }: { name: string; icon: string; ind
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
       whileHover={{
-        scale: 1.1,
-        boxShadow: "0 18px 45px rgba(196, 113, 74, 0.34)"
+        scale: 1.06
       }}
       whileTap={{ scale: 0.97 }}
-      className="relative flex h-[clamp(86px,26vw,98px)] w-[clamp(86px,26vw,98px)] items-center justify-center rounded-full bg-white text-center shadow-soft sm:h-[112px] sm:w-[112px] xl:h-[120px] xl:w-[120px]"
+      className="group flex w-[clamp(96px,28vw,112px)] flex-col items-center gap-3 text-center sm:w-[128px] xl:w-[138px]"
     >
-      <motion.span
-        className="absolute inset-[-3px] rounded-full border-2 border-dashed border-artisan-terracotta sm:inset-[-6px]"
-        animate={{ rotate: isHovered ? 360 : 0 }}
-        transition={{
-          duration: 1.2,
-          repeat: isHovered ? Infinity : 0,
-          ease: "linear"
-        }}
-      />
-      <span className="relative z-10 flex min-w-0 flex-col items-center gap-1 px-2 sm:px-3">
-        <motion.span animate={{ y: isHovered ? -3 : 0 }} className="text-xl leading-none sm:text-2xl md:text-3xl">
-          {icon}
-        </motion.span>
-        <span className="max-w-[92%] break-words text-[9px] font-black leading-[1.02] text-artisan-brown sm:text-[11px] sm:leading-tight xl:text-xs">{name}</span>
+      <span className="relative flex h-[clamp(92px,27vw,104px)] w-[clamp(92px,27vw,104px)] items-center justify-center rounded-full bg-white shadow-soft transition-shadow duration-200 group-hover:shadow-[0_18px_45px_rgba(196,113,74,0.34)] sm:h-[112px] sm:w-[112px] xl:h-[124px] xl:w-[124px]">
+        <motion.span
+          className="absolute inset-[-3px] rounded-full border-2 border-dashed border-artisan-terracotta sm:inset-[-6px]"
+          animate={{ rotate: isHovered ? 360 : 0 }}
+          transition={{
+            duration: 1.2,
+            repeat: isHovered ? Infinity : 0,
+            ease: "linear"
+          }}
+        />
+        <span className="absolute inset-0 overflow-hidden rounded-full bg-artisan-sand">
+          {displayImageUrl ? (
+            <motion.img
+              src={displayImageUrl}
+              alt={`${name} category`}
+              loading="lazy"
+              animate={{ scale: isHovered ? 1.09 : 1 }}
+              transition={{ duration: 0.45, ease: "easeOut" }}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center bg-white text-3xl">{icon}</span>
+          )}
+          <span className="absolute inset-0 bg-gradient-to-t from-artisan-brown/12 via-transparent to-white/8" />
+        </span>
+      </span>
+      <span className="min-h-[2.4rem] max-w-full text-[10px] font-black uppercase leading-[1.12] tracking-[0.04em] text-artisan-brown sm:text-[11px] xl:text-xs">
+        {name}
       </span>
     </motion.a>
   );

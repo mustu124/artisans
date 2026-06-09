@@ -8,6 +8,7 @@ import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } 
 import { CSS } from "@dnd-kit/utilities";
 import { AdminSection, ConfirmButton } from "@/components/admin/AdminCards";
 import { adminFetch } from "@/lib/admin-client";
+import { getDisplayMediaUrl } from "@/lib/media";
 
 type HeroSlide = {
   image: string;
@@ -273,11 +274,30 @@ function SortableSlide({
   onRemove: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: slide.id });
+  const [previewFailed, setPreviewFailed] = useState(false);
+  const previewUrl = getDisplayMediaUrl(slide.image);
+
+  useEffect(() => {
+    setPreviewFailed(false);
+  }, [previewUrl]);
 
   return (
     <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className="grid gap-4 rounded-2xl border border-artisan-brown/10 bg-artisan-cream p-4 md:grid-cols-[180px_1fr]">
       <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-artisan-sand">
-        <Image src={slide.image} alt={slide.title || "Hero slide"} fill className="object-cover" />
+        {previewFailed ? (
+          <div className="flex h-full w-full items-center justify-center px-4 text-center text-xs font-black uppercase tracking-[0.12em] text-artisan-brown/60">
+            Preview loading
+          </div>
+        ) : (
+          <Image
+            src={previewUrl}
+            alt={slide.title || "Hero slide"}
+            fill
+            sizes="180px"
+            className="object-cover"
+            onError={() => setPreviewFailed(true)}
+          />
+        )}
         <span className="absolute left-2 top-2 rounded-full bg-artisan-brown px-2 py-1 text-xs font-black text-white">#{index + 1}</span>
       </div>
       <div className="grid gap-3">
