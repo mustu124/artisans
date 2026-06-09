@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { AdminSection, ConfirmButton } from "@/components/admin/AdminCards";
 import { adminFetch, formatCurrency } from "@/lib/admin-client";
 import { PRODUCT_CATEGORIES, type StoreProduct } from "@/lib/product-data";
+import { getDisplayMediaUrl } from "@/lib/media";
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<StoreProduct[]>([]);
@@ -92,7 +93,7 @@ export default function AdminProductsPage() {
                 <tr key={product._id}>
                   <td><input type="checkbox" checked={selected.includes(product.slug)} onChange={(e) => setSelected((cur) => e.target.checked ? [...cur, product.slug] : cur.filter((id) => id !== product.slug))} /></td>
                   <td className="flex items-center gap-3 py-3">
-                    <Image src={product.images[0]?.url ?? "/logo.png"} alt={product.name} width={48} height={48} className="h-12 w-12 rounded-xl object-cover" />
+                    <Image src={getDisplayMediaUrl(product.images[0]?.url)} alt={product.name} width={48} height={48} className="h-12 w-12 rounded-xl object-cover" />
                     <span className="font-black">{product.name}</span>
                   </td>
                   <td>{product.category}</td>

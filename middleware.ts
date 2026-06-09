@@ -21,7 +21,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (await hasValidSupabaseSession(request)) {
+  const hasSessionCookie = Boolean(request.cookies.get(ADMIN_SESSION_COOKIE)?.value);
+
+  if (hasSessionCookie) {
     return NextResponse.next();
   }
 
@@ -35,30 +37,6 @@ export async function middleware(request: NextRequest) {
   const loginUrl = new URL("/admin/login", request.url);
   loginUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
   return NextResponse.redirect(loginUrl);
-}
-
-async function hasValidSupabaseSession(request: NextRequest) {
-  const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!token || !supabaseUrl || !anonKey) {
-    return false;
-  }
-
-  try {
-    const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${token}`
-      },
-      cache: "no-store"
-    });
-
-    return response.ok;
-  } catch {
-    return false;
-  }
 }
 
 export const config = {

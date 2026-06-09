@@ -8,6 +8,7 @@ import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from "@d
 import { CSS } from "@dnd-kit/utilities";
 import { AdminSection, ConfirmButton } from "@/components/admin/AdminCards";
 import { adminFetch } from "@/lib/admin-client";
+import { getDisplayMediaUrl } from "@/lib/media";
 import type { GalleryItem } from "@/lib/gallery-data";
 
 const galleryCategories = [
@@ -221,7 +222,7 @@ function SortableGalleryItem({ item, onDelete }: { item: GalleryItem; onDelete: 
   return (
     <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className="relative overflow-hidden rounded-2xl border border-artisan-brown/10 bg-artisan-sand">
       <div className="relative h-52 w-full overflow-hidden bg-artisan-cream">
-        <Image src={imageSrc} alt={item.caption || "Gallery item"} fill className="object-cover" />
+        <Image src={getDisplayMediaUrl(imageSrc)} alt={item.caption || "Gallery item"} fill className="object-cover" />
         {item.type === "video" && <span className="absolute left-2 top-2 rounded-full bg-artisan-brown px-2 py-1 text-xs font-black text-white">Video</span>}
       </div>
       <div className="grid gap-2 p-3">

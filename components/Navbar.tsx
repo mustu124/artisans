@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useScroll, useTransform } from "framer-motion"
 import { useCart } from "@/context/CartContext";
 import { useDebounce } from "@/hooks/useDebounce";
 import { slideInRight } from "@/lib/animations";
+import { getDisplayMediaUrl } from "@/lib/media";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -573,7 +574,7 @@ function SearchOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => vo
                     className="grid grid-cols-[96px_1fr] gap-4 rounded-2xl bg-white p-3 shadow-soft focus:outline-none focus:ring-2 focus:ring-artisan-terracotta"
                   >
                     <Image
-                      src={product.images?.[0]?.url ?? "/logo.png"}
+                      src={getDisplayMediaUrl(product.images?.[0]?.url)}
                       alt={product.images?.[0]?.alt ?? product.name}
                       width={96}
                       height={96}

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { fadeInUp } from "@/lib/animations";
+import { getDisplayMediaUrl } from "@/lib/media";
 import type { StoreProduct } from "@/lib/product-data";
 
 type ProductCardProps = {
@@ -15,7 +16,7 @@ type ProductCardProps = {
 };
 
 function optimizedMediaUrl(src: string, width = 700) {
-  return src;
+  return getDisplayMediaUrl(src);
 }
 
 export function ProductCard({ product, onQuickView, onMoreLikeThis }: ProductCardProps) {

@@ -13,6 +13,7 @@ import { useCart } from "@/context/CartContext";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fadeInScale, fadeInUp, staggerContainer } from "@/lib/animations";
+import { getDisplayMediaUrl } from "@/lib/media";
 
 type Product = {
   _id: string;
@@ -109,15 +110,6 @@ const testimonials = [
   }
 ];
 
-const instagramImages = [
-  "https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1600489000022-c2086d79f9d4?auto=format&fit=crop&w=600&q=80"
-];
-
 const sectionReveal = { hidden: staggerContainer.hidden, show: staggerContainer.visible };
 const itemReveal = { hidden: fadeInUp.hidden, show: fadeInUp.visible };
 const scaleReveal = { hidden: fadeInScale.hidden, show: fadeInScale.visible };
@@ -131,7 +123,7 @@ function optimizedMediaUrl(src: string, width = 1200) {
     return url.toString();
   }
 
-  return src;
+  return getDisplayMediaUrl(src);
 }
 
 export default function HomePage() {
@@ -561,7 +553,7 @@ function FeaturedProducts() {
             <div className="aspect-[4/5] overflow-hidden bg-artisan-sand">
               <motion.div className="relative h-full w-full" whileHover={{ scale: 1.07 }} transition={{ duration: 0.5, ease: "easeOut" }}>
                 <Image
-                  src={product.images?.[0]?.url ?? "/logo.png"}
+                  src={getDisplayMediaUrl(product.images?.[0]?.url)}
                   alt={product.images?.[0]?.alt ?? product.name}
                   fill
                   sizes="(min-width: 1280px) 25vw, (min-width: 640px) 33vw, 50vw"
@@ -588,7 +580,7 @@ function FeaturedProducts() {
                       productId: product._id,
                       name: product.name,
                       price: product.price,
-                      imageUrl: product.images?.[0]?.url
+                      imageUrl: getDisplayMediaUrl(product.images?.[0]?.url)
                     })
                   }
                   whileHover={{ scale: 1.03, backgroundColor: "#c4714a" }}
@@ -805,10 +797,7 @@ function InstagramStrip({ instagramUrl }: { instagramUrl?: string }) {
     };
   }, []);
 
-  const feedImages = productImages.length ? productImages : instagramImages.map((url, index) => ({
-    url,
-    alt: `Artisan Root product ${index + 1}`
-  }));
+  const feedImages = productImages.slice(0, 6);
 
   return (
     <motion.section
@@ -822,9 +811,9 @@ function InstagramStrip({ instagramUrl }: { instagramUrl?: string }) {
         <h2 className="font-heading text-4xl font-bold text-artisan-brown">Follow us @artisanroot</h2>
       </motion.div>
       <motion.div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6" variants={sectionReveal}>
-        {feedImages.map((image, index) => (
+        {(feedImages.length ? feedImages : Array.from({ length: 6 }, (_, index) => ({ url: "", alt: `Artisan Root product ${index + 1}` }))).map((image, index) => (
           <motion.a
-            key={`${image.url}-${index}`}
+            key={`${image.url || "placeholder"}-${index}`}
             href={feedLink}
             onClick={(event) => {
               if (feedLink === "#") event.preventDefault();
@@ -834,17 +823,23 @@ function InstagramStrip({ instagramUrl }: { instagramUrl?: string }) {
             whileHover={{ scale: 0.97 }}
             className="group relative aspect-square overflow-hidden bg-artisan-sand"
           >
-            <motion.div className="relative h-full w-full" whileHover={{ scale: 1.08 }} transition={{ duration: 0.45 }}>
-              <Image
-                src={optimizedMediaUrl(image.url, 720)}
-                alt={image.alt}
-                fill
-                sizes="(min-width: 1024px) 16vw, (min-width: 640px) 33vw, 50vw"
-                loading="lazy"
-                quality={78}
-                className="object-cover"
-              />
-            </motion.div>
+            {image.url ? (
+              <motion.div className="relative h-full w-full" whileHover={{ scale: 1.08 }} transition={{ duration: 0.45 }}>
+                <Image
+                  src={optimizedMediaUrl(image.url, 720)}
+                  alt={image.alt}
+                  fill
+                  sizes="(min-width: 1024px) 16vw, (min-width: 640px) 33vw, 50vw"
+                  loading="lazy"
+                  quality={78}
+                  className="object-cover"
+                />
+              </motion.div>
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-artisan-cream">
+                <Image src="/logo.png" alt={image.alt} width={96} height={96} className="opacity-70" />
+              </div>
+            )}
             <motion.div
               className="absolute inset-0 flex items-center justify-center bg-artisan-brown/70 text-center text-sm font-black uppercase tracking-[0.12em] text-white opacity-0"
               whileHover={{ opacity: 1 }}

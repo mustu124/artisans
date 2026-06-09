@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 import { useCart, type CartItem } from "@/context/CartContext";
 import { buildWhatsAppMessage, type CustomerInfo } from "@/lib/whatsapp";
 import { slideInRight, staggerContainer } from "@/lib/animations";
+import { getDisplayMediaUrl } from "@/lib/media";
 
 type CheckoutFormState = CustomerInfo & {
   email: string;
@@ -101,7 +102,7 @@ export function CartSidebar() {
                       >
                         <Link href={`/shop/${item.product.slug}`} onClick={closeCart}>
                           <Image
-                            src={item.product.images[0]?.url ?? "/logo.png"}
+                            src={getDisplayMediaUrl(item.product.images[0]?.url)}
                             alt={item.product.images[0]?.alt ?? item.product.name}
                             width={60}
                             height={60}

@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ProductCard, QuickViewModal } from "@/components/ProductCard";
 import { useCart } from "@/context/CartContext";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { getDisplayMediaUrl } from "@/lib/media";
 import type { StoreProduct } from "@/lib/product-data";
 
 type ProductResponse = {
@@ -25,7 +26,7 @@ type ProductsResponse = {
 };
 
 function optimizedMediaUrl(src: string, width = 1100) {
-  return src;
+  return getDisplayMediaUrl(src);
 }
 
 export default function ProductDetailPage({ params }: { params: { slug: string } }) {

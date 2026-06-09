@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
@@ -64,6 +63,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 }
 
 function Sidebar({ pathname, onNavigate }: { pathname: string; onNavigate: () => void }) {
+  const logout = async () => {
+    await fetch("/api/admin/logout", { method: "POST" });
+    window.location.href = "/admin/login";
+  };
+
   return (
     <div className="flex h-full flex-col p-5">
       <Link href="/admin" onClick={onNavigate} className="flex items-center gap-3">
@@ -89,7 +93,7 @@ function Sidebar({ pathname, onNavigate }: { pathname: string; onNavigate: () =>
       </nav>
       <button
         type="button"
-        onClick={() => signOut({ callbackUrl: "/admin/login" })}
+        onClick={logout}
         className="mt-auto rounded-xl border border-artisan-brown/15 px-4 py-3 text-left text-sm font-black text-artisan-brown hover:border-artisan-terracotta"
       >
         Logout

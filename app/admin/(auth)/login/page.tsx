@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
@@ -25,9 +24,14 @@ function AdminLoginForm() {
     event.preventDefault();
     setIsSubmitting(true);
     setError("");
-    const result = await signIn("credentials", { email, password, redirect: false, callbackUrl });
 
-    if (result?.ok) {
+    const response = await fetch("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+
+    if (response.ok) {
       window.location.href = callbackUrl;
       return;
     }

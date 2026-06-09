@@ -1,6 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
@@ -21,8 +20,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { PRODUCT_CATEGORIES, slugifyProductName, type ProductCategory, type StoreProduct } from "@/lib/product-data";
 import { adminFetch } from "@/lib/admin-client";
-
-const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
+import { getDisplayMediaUrl } from "@/lib/media";
 
 type ProductDraft = Partial<StoreProduct> & {
   tagsInput?: string;
@@ -205,9 +203,11 @@ export function ProductForm({ product }: { product?: StoreProduct }) {
           </Field>
         </div>
         <Field label="Description">
-          <div data-color-mode="light">
-            <MDEditor value={form.description ?? ""} onChange={(value) => update("description", value ?? "")} height={220} />
-          </div>
+          <textarea
+            value={form.description ?? ""}
+            onChange={(event) => update("description", event.target.value)}
+            className="field-input min-h-40 resize-y"
+          />
         </Field>
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Dimensions">
@@ -279,7 +279,7 @@ function SortableImage({
 
   return (
     <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className="relative aspect-square overflow-hidden rounded-xl bg-artisan-sand">
-      <Image src={image.url} alt={image.alt ?? "Product image"} fill className="object-cover" {...attributes} {...listeners} />
+      <Image src={getDisplayMediaUrl(image.url)} alt={image.alt ?? "Product image"} fill className="object-cover" {...attributes} {...listeners} />
       {index === 0 && <span className="absolute left-2 top-2 rounded-full bg-artisan-brown px-2 py-1 text-xs font-black text-white">Main</span>}
       <button type="button" onClick={onDelete} className="absolute right-2 top-2 rounded-full bg-red-700 px-2 py-1 text-xs font-black text-white">Delete</button>
     </div>

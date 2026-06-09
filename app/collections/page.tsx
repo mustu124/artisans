@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import type { GalleryItem } from "@/lib/gallery-data";
+import { getDisplayMediaUrl } from "@/lib/media";
 
 const filters = [
   "All",
@@ -29,7 +30,7 @@ type GalleryResponse = {
 };
 
 function optimizedMediaUrl(src: string, width = 800) {
-  return src;
+  return getDisplayMediaUrl(src);
 }
 
 export default function CollectionsPage() {

@@ -6,6 +6,22 @@ import { normalizeSupabaseProduct, productPayloadToSupabase } from "@/lib/supaba
 
 export const dynamic = "force-dynamic";
 
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+async function findProductBySlugOrId(supabase: ReturnType<typeof getSupabaseAdmin>, slugOrId: string, onlyActive = false) {
+  let slugQuery = supabase.from("products").select("*").eq("slug", slugOrId);
+  if (onlyActive) slugQuery = slugQuery.eq("active", true);
+
+  const slugResult = await slugQuery.maybeSingle();
+  if (slugResult.error || slugResult.data || !uuidPattern.test(slugOrId)) {
+    return slugResult;
+  }
+
+  let idQuery = supabase.from("products").select("*").eq("id", slugOrId);
+  if (onlyActive) idQuery = idQuery.eq("active", true);
+  return idQuery.maybeSingle();
+}
+
 export async function GET(_: Request, { params }: { params: { slug: string } }) {
   try {
     const fallbackProduct = fallbackProducts.find(
@@ -24,12 +40,7 @@ export async function GET(_: Request, { params }: { params: { slug: string } }) 
     }
 
     const supabase = getSupabaseAdmin();
-    const { data: product, error } = await supabase
-      .from("products")
-      .select("*")
-      .eq("active", true)
-      .or(`slug.eq.${params.slug},id.eq.${params.slug}`)
-      .maybeSingle();
+    const { data: product, error } = await findProductBySlugOrId(supabase, params.slug, true);
 
     if (error) throw error;
 
@@ -51,11 +62,7 @@ export async function PUT(request: Request, { params }: { params: { slug: string
   try {
     const payload = (await request.json()) as Record<string, unknown>;
     const supabase = getSupabaseAdmin();
-    const { data: existing, error: lookupError } = await supabase
-      .from("products")
-      .select("id")
-      .or(`slug.eq.${params.slug},id.eq.${params.slug}`)
-      .maybeSingle();
+    const { data: existing, error: lookupError } = await findProductBySlugOrId(supabase, params.slug);
 
     if (lookupError) throw lookupError;
     if (!existing) return fail("Product not found.", 404);
@@ -80,11 +87,7 @@ export async function DELETE(_: Request, { params }: { params: { slug: string } 
 
   try {
     const supabase = getSupabaseAdmin();
-    const { data: existing, error: lookupError } = await supabase
-      .from("products")
-      .select("id")
-      .or(`slug.eq.${params.slug},id.eq.${params.slug}`)
-      .maybeSingle();
+    const { data: existing, error: lookupError } = await findProductBySlugOrId(supabase, params.slug);
 
     if (lookupError) throw lookupError;
     if (!existing) return fail("Product not found.", 404);
