@@ -24,6 +24,31 @@ function sortFallback(products: StoreProduct[], sort: string) {
   });
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object" && error && "message" in error) {
+    return String((error as { message?: unknown }).message || fallback);
+  }
+  return fallback;
+}
+
+async function createUniqueSlug(supabase: ReturnType<typeof getSupabaseAdmin>, desiredSlug: string) {
+  const baseSlug = desiredSlug.trim() || `product-${Date.now()}`;
+  const { data, error } = await supabase
+    .from("products")
+    .select("slug")
+    .or(`slug.eq.${baseSlug},slug.like.${baseSlug}-%`);
+
+  if (error) throw error;
+
+  const existingSlugs = new Set((data ?? []).map((product) => String(product.slug)));
+  if (!existingSlugs.has(baseSlug)) return baseSlug;
+
+  let suffix = 2;
+  while (existingSlugs.has(`${baseSlug}-${suffix}`)) suffix += 1;
+  return `${baseSlug}-${suffix}`;
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -95,7 +120,7 @@ export async function GET(request: Request) {
       "Products loaded."
     );
   } catch (error) {
-    return fail(error instanceof Error ? error.message : "Failed to load products.");
+    return fail(getErrorMessage(error, "Failed to load products."));
   }
 }
 
@@ -112,15 +137,18 @@ export async function POST(request: Request) {
     }
 
     const supabase = getSupabaseAdmin();
+    const productPayload = productPayloadToSupabase(payload);
+    productPayload.slug = await createUniqueSlug(supabase, String(productPayload.slug));
+
     const { data: product, error } = await supabase
       .from("products")
-      .insert(productPayloadToSupabase(payload))
+      .insert(productPayload)
       .select("*")
       .single();
 
     if (error) throw error;
     return ok({ product: normalizeSupabaseProduct(product) }, "Product created.", { status: 201 });
   } catch (error) {
-    return fail(error instanceof Error ? error.message : "Failed to create product.");
+    return fail(getErrorMessage(error, "Failed to create product."));
   }
 }

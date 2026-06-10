@@ -8,6 +8,14 @@ export const dynamic = "force-dynamic";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object" && error && "message" in error) {
+    return String((error as { message?: unknown }).message || fallback);
+  }
+  return fallback;
+}
+
 async function findProductBySlugOrId(supabase: ReturnType<typeof getSupabaseAdmin>, slugOrId: string, onlyActive = false) {
   let slugQuery = supabase.from("products").select("*").eq("slug", slugOrId);
   if (onlyActive) slugQuery = slugQuery.eq("active", true);
@@ -56,7 +64,7 @@ export async function GET(_: Request, { params }: { params: { slug: string } }) 
       "Product loaded."
     );
   } catch (error) {
-    return fail(error instanceof Error ? error.message : "Failed to load product.");
+    return fail(getErrorMessage(error, "Failed to load product."));
   }
 }
 
@@ -82,7 +90,7 @@ export async function PUT(request: Request, { params }: { params: { slug: string
     if (error) throw error;
     return ok({ product: normalizeSupabaseProduct(product) }, "Product updated.");
   } catch (error) {
-    return fail(error instanceof Error ? error.message : "Failed to update product.");
+    return fail(getErrorMessage(error, "Failed to update product."));
   }
 }
 
@@ -107,6 +115,6 @@ export async function DELETE(_: Request, { params }: { params: { slug: string } 
     if (error) throw error;
     return ok({ product: normalizeSupabaseProduct(product) }, "Product deleted.");
   } catch (error) {
-    return fail(error instanceof Error ? error.message : "Failed to delete product.");
+    return fail(getErrorMessage(error, "Failed to delete product."));
   }
 }

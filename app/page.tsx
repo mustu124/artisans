@@ -336,8 +336,8 @@ function HeroSlider({ slides }: { slides: HeroSlide[] }) {
           >
             <motion.p
               variants={itemReveal}
-              className="mb-4 uppercase sm:mb-5"
-              style={{ color: "#c9973a", fontSize: 11, letterSpacing: "0.18em", fontWeight: 500 }}
+              className="mb-3 max-w-[15ch] text-[30px] font-bold uppercase leading-[1.18] sm:mb-4 sm:max-w-3xl sm:text-[44px] sm:leading-[1.15] xl:text-[60px]"
+              style={{ color: "#2C0F03" }}
             >
               <span style={frostedTextStyle}>Artisan Root</span>
             </motion.p>
