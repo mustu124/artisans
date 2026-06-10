@@ -1,6 +1,6 @@
 import { fail, ok } from "@/lib/api";
 import { assertAdmin } from "@/lib/admin-auth";
-import { fallbackProducts } from "@/lib/product-data";
+import { fallbackProducts, normalizeProduct } from "@/lib/product-data";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { normalizeSupabaseProduct, productPayloadToSupabase } from "@/lib/supabase-mappers";
 
@@ -36,7 +36,7 @@ export async function GET(_: Request, { params }: { params: { slug: string } }) 
       }
 
       if (!fallbackProduct) return fail("Product not found.", 404);
-      return ok({ product: fallbackProduct, fallback: true }, "Product loaded.");
+      return ok({ product: normalizeProduct(fallbackProduct as unknown as Record<string, unknown>), fallback: true }, "Product loaded.");
     }
 
     const supabase = getSupabaseAdmin();
@@ -47,7 +47,12 @@ export async function GET(_: Request, { params }: { params: { slug: string } }) 
     if (!product && (!canUseFallback || !fallbackProduct)) return fail("Product not found.", 404);
 
     return ok(
-      { product: product ? normalizeSupabaseProduct(product) : fallbackProduct, fallback: !product },
+      {
+        product: product
+          ? normalizeSupabaseProduct(product)
+          : normalizeProduct(fallbackProduct as unknown as Record<string, unknown>),
+        fallback: !product
+      },
       "Product loaded."
     );
   } catch (error) {

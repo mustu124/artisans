@@ -221,7 +221,7 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
               <span key={index}>{index < Math.round(product.rating.average) ? "★" : "☆"}</span>
             ))}
             <span className="ml-2 text-sm font-bold text-stone-600">
-              {product.rating.average.toFixed(1)} ({product.rating.count} reviews)
+              {product.rating.average.toFixed(1)}
             </span>
           </div>
 

@@ -53,6 +53,17 @@ export function slugifyProductName(name: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+function getStableRatingSeed(value: string) {
+  return Array.from(value).reduce((hash, char) => {
+    return (hash * 31 + char.charCodeAt(0)) % 9973;
+  }, 17);
+}
+
+export function getDisplayRating(product: Pick<StoreProduct, "slug" | "name" | "_id">) {
+  const seed = getStableRatingSeed(product.slug || product.name || product._id);
+  return Number((4.5 + (seed % 6) / 10).toFixed(1));
+}
+
 const sharedImages = {
   wall:
     "https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&w=1000&q=85",
@@ -341,12 +352,15 @@ export const fallbackProducts: StoreProduct[] = [
 
 export function normalizeProduct(product: Record<string, unknown>): StoreProduct {
   const name = String(product.name ?? "Untitled Product");
+  const slug = String(product.slug ?? slugifyProductName(name));
   const isFeatured = Boolean(product.isFeatured ?? product.featured);
+  const _id = String(product._id ?? product.id ?? slug);
+  const ratingAverage = getDisplayRating({ _id, name, slug });
 
   return {
-    _id: String(product._id ?? product.id ?? slugifyProductName(name)),
+    _id,
     name,
-    slug: String(product.slug ?? slugifyProductName(name)),
+    slug,
     category: (product.category as ProductCategory) ?? "Wall hanging without mirror",
     subcategory: product.subcategory ? String(product.subcategory) : undefined,
     description: String(product.description ?? ""),
@@ -362,10 +376,7 @@ export function normalizeProduct(product: Record<string, unknown>): StoreProduct
     inStock: product.inStock === undefined ? true : Boolean(product.inStock),
     stockCount: Number(product.stockCount ?? product.inventory ?? 0),
     tags: Array.isArray(product.tags) ? (product.tags as string[]) : [],
-    rating:
-      typeof product.rating === "object" && product.rating
-        ? (product.rating as StoreProduct["rating"])
-        : { average: 0, count: 0 },
+    rating: { average: ratingAverage, count: 0 },
     createdAt: product.createdAt ? String(product.createdAt) : new Date().toISOString(),
     variants: Array.isArray(product.variants) ? (product.variants as string[]) : undefined,
     popularScore: Number(product.popularScore ?? 0)
@@ -399,5 +410,5 @@ export function filterFallbackProducts({
     }
 
     return true;
-  });
+  }).map((product) => normalizeProduct(product as unknown as Record<string, unknown>));
 }
