@@ -17,8 +17,8 @@ module.exports = {
         "artisan-sand": "#e8d5bc"
       },
       fontFamily: {
-        heading: ["var(--font-playfair)", "Georgia", "serif"],
-        body: ["var(--font-lato)", "Arial", "sans-serif"]
+        heading: ["Arial", "sans-serif"],
+        body: ["Arial", "sans-serif"]
       },
       boxShadow: {
         soft: "0 16px 40px rgba(92, 45, 10, 0.12)"

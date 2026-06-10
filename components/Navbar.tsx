@@ -139,7 +139,7 @@ export function Navbar() {
                         animate={{ opacity: 1, height: "auto", y: 0 }}
                         exit={{ opacity: 0, height: 0, y: 12 }}
                         transition={{ duration: 0.28, ease: "easeOut" }}
-                        className="absolute left-1/2 top-9 w-[680px] -translate-x-1/2 overflow-hidden rounded-2xl border border-artisan-brown/10 bg-artisan-cream/98 text-artisan-brown shadow-soft backdrop-blur"
+                        className="absolute left-1/2 top-9 w-[680px] -translate-x-1/2 overflow-hidden rounded-2xl border border-[#d6c3b2] bg-[#e4d2c3] text-[#3a1607] shadow-[0_24px_70px_rgba(92,45,10,0.16)]"
                       >
                         <motion.div
                           className="grid grid-cols-5 gap-3 p-5"
@@ -158,13 +158,15 @@ export function Navbar() {
                                 hidden: { opacity: 0, y: 10 },
                                 show: { opacity: 1, y: 0 }
                               }}
-                              whileHover={{ y: -3, backgroundColor: "rgba(232,213,188,0.72)" }}
-                              className="rounded-xl p-3 text-center focus:outline-none focus:ring-2 focus:ring-artisan-terracotta"
+                              whileHover={{ y: -3, backgroundColor: "rgba(232, 213, 188, 0.34)" }}
+                              className="min-h-[118px] rounded-xl p-3 text-center transition-colors focus:outline-none focus:ring-2 focus:ring-artisan-terracotta"
                             >
-                              <span className="block text-xs font-black uppercase tracking-[0.16em] text-artisan-terracotta">
+                              <span className="block text-xs font-black uppercase tracking-[0.16em] text-artisan-terracotta drop-shadow-[0_1px_0_rgba(255,248,240,0.85)]">
                                 {category.icon || "Craft"}
                               </span>
-                              <span className="mt-2 block text-xs font-black leading-tight">{category.name}</span>
+                              <span className="mt-2 block text-xs font-black leading-tight text-[#3a1607] drop-shadow-[0_1px_0_rgba(255,248,240,0.85)]">
+                                {category.name}
+                              </span>
                             </motion.a>
                           ))}
                         </motion.div>
