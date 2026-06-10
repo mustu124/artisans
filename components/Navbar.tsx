@@ -115,11 +115,11 @@ export function Navbar() {
       >
         <motion.nav
           aria-label="Primary navigation"
-          className="mx-auto hidden h-20 max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-8 px-8 md:grid"
+          className="mx-auto hidden h-[88px] max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-8 px-8 md:grid"
           style={navTextStyle}
         >
           <motion.a href="/" whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} className="inline-flex items-center">
-            <Image src="/logo.png" alt="Artisan Root" width={52} height={52} quality={95} priority className="rounded-xl object-contain" />
+            <Image src="/logo.png" alt="Artisan Root" width={64} height={64} quality={95} priority className="rounded-2xl object-contain" />
           </motion.a>
 
           <div className="flex items-center justify-center gap-8">
@@ -194,12 +194,12 @@ export function Navbar() {
 
         <motion.nav
           aria-label="Mobile navigation"
-          className="grid h-16 grid-cols-3 items-center px-4 md:hidden"
+          className="grid h-[72px] grid-cols-3 items-center px-4 md:hidden"
           style={navTextStyle}
         >
           <CartButton itemCount={itemCount} onClick={openCart} />
           <motion.a href="/" whileTap={{ scale: 0.96 }} className="justify-self-center">
-            <Image src="/logo.png" alt="Artisan Root" width={52} height={52} quality={95} priority className="rounded-xl object-contain" />
+            <Image src="/logo.png" alt="Artisan Root" width={58} height={58} quality={95} priority className="rounded-2xl object-contain" />
           </motion.a>
           <motion.button
             type="button"
