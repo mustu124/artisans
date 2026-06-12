@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCart, type CartItem } from "@/context/CartContext";
 import { buildWhatsAppMessage, type CustomerInfo } from "@/lib/whatsapp";
 import { slideInRight, staggerContainer } from "@/lib/animations";
@@ -34,6 +34,15 @@ export function CartSidebar() {
     clearCart
   } = useCart();
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+
+  useEffect(() => {
+    const openCheckout = () => {
+      window.setTimeout(() => setIsCheckoutOpen(true), 120);
+    };
+
+    window.addEventListener("artisan-root:start-checkout", openCheckout);
+    return () => window.removeEventListener("artisan-root:start-checkout", openCheckout);
+  }, []);
 
   return (
     <>

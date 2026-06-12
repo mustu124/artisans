@@ -279,14 +279,18 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
             >
               {isAdded ? "✓ Added!" : "Add to Cart"}
             </motion.button>
-            <motion.a
-              href="/checkout"
+            <motion.button
+              type="button"
               whileHover={{ y: -2 }}
               whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                addItem(product, quantity, selectedVariant);
+                window.dispatchEvent(new CustomEvent("artisan-root:start-checkout"));
+              }}
               className="rounded-full border border-artisan-brown px-6 py-4 text-center text-sm font-black uppercase tracking-[0.14em] text-artisan-brown"
             >
               Buy Now
-            </motion.a>
+            </motion.button>
           </div>
 
           <a

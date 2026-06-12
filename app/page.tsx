@@ -152,6 +152,19 @@ function getHeroSlideHeadline(slide: NonNullable<PublicSettings["heroSlides"]>[n
   return candidates.find((candidate) => !looksLikeDatabaseId(candidate)) ?? fallbackHeroHeadline;
 }
 
+function isConfiguredHeroSlide(slide: NonNullable<PublicSettings["heroSlides"]>[number]) {
+  const image = (slide.image ?? "").trim();
+  const title = getHeroSlideHeadline(slide).trim();
+
+  return Boolean(
+    image &&
+      image !== "/logo.png" &&
+      !image.includes("images.unsplash.com/photo-1618220179428-22790b461013") &&
+      title &&
+      !/^Homepage slide \d+$/i.test(title)
+  );
+}
+
 const frostedTextStyle = {
   background: "rgba(255, 248, 240, 0.52)",
   backdropFilter: "blur(3px)",
@@ -200,8 +213,9 @@ export default function HomePage() {
   }, []);
 
   const liveHeroSlides = useMemo<HeroSlide[]>(() => {
-    const sourceSlides = isMobileViewport && settings?.mobileHeroSlides?.length
-      ? settings.mobileHeroSlides
+    const configuredMobileSlides = settings?.mobileHeroSlides?.filter(isConfiguredHeroSlide);
+    const sourceSlides = isMobileViewport && configuredMobileSlides?.length
+      ? configuredMobileSlides
       : settings?.heroSlides;
     const slides = sourceSlides
       ?.filter(
