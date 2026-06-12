@@ -135,6 +135,32 @@ function optimizedMediaUrl(src: string, width = 1200) {
   return getDisplayMediaUrl(src);
 }
 
+function getYouTubeEmbedUrl(src?: string) {
+  const fallback = "https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0";
+  if (!src?.trim()) return fallback;
+
+  try {
+    const url = new URL(src.trim());
+    const host = url.hostname.replace(/^www\./, "");
+    let videoId = "";
+
+    if (host === "youtu.be") {
+      videoId = url.pathname.split("/").filter(Boolean)[0] ?? "";
+    } else if (host.endsWith("youtube.com")) {
+      if (url.pathname.startsWith("/embed/")) return src.trim();
+      if (url.pathname.startsWith("/shorts/")) {
+        videoId = url.pathname.split("/").filter(Boolean)[1] ?? "";
+      } else {
+        videoId = url.searchParams.get("v") ?? "";
+      }
+    }
+
+    return videoId ? `https://www.youtube.com/embed/${videoId}?rel=0` : src.trim();
+  } catch {
+    return src.trim();
+  }
+}
+
 function looksLikeDatabaseId(value?: string) {
   if (!value) return true;
   const normalized = value.trim();
@@ -793,6 +819,7 @@ function VideoSection({ videoUrl }: { videoUrl?: string }) {
     "Choose the right knot style",
     "Layer textures confidently"
   ];
+  const embedUrl = getYouTubeEmbedUrl(videoUrl);
 
   return (
     <motion.section
@@ -813,7 +840,7 @@ function VideoSection({ videoUrl }: { videoUrl?: string }) {
         <motion.div variants={itemReveal} className="relative aspect-video overflow-hidden rounded-2xl bg-artisan-brown shadow-soft">
           <iframe
             className="h-full w-full"
-            src={videoUrl || "https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0"}
+            src={embedUrl}
             title="How to choose macrame for your home"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen

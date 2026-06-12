@@ -244,7 +244,7 @@ export default function AdminHomepagePage() {
           </label>
           <label className="grid gap-2 text-sm font-bold text-artisan-brown">
             How-to YouTube video URL
-            <input value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} className="field-input" placeholder="https://www.youtube.com/embed/..." />
+            <input value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} className="field-input" placeholder="Paste a YouTube link, e.g. https://youtu.be/..." />
           </label>
         </div>
       </AdminSection>
