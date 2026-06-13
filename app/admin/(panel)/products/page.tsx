@@ -33,26 +33,45 @@ export default function AdminProductsPage() {
     [category, products, search]
   );
 
-  const removeProduct = async (slug: string) => {
-    await adminFetch(`/api/products/${slug}`, { method: "DELETE" });
-    toast.success("Product deleted");
-    load();
+  const productIdentifier = (product: StoreProduct) => product.slug || product._id;
+  const productApiPath = (product: StoreProduct) => `/api/products/${encodeURIComponent(productIdentifier(product))}`;
+
+  const removeProduct = async (product: StoreProduct) => {
+    try {
+      await adminFetch(productApiPath(product), { method: "DELETE" });
+      setSelected((current) => current.filter((id) => id !== productIdentifier(product)));
+      setProducts((current) => current.filter((item) => item._id !== product._id));
+      toast.success("Product deleted");
+      load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Delete failed");
+    }
   };
 
   const bulkDelete = async () => {
-    await Promise.all(selected.map((slug) => adminFetch(`/api/products/${slug}`, { method: "DELETE" })));
-    setSelected([]);
-    toast.success("Selected products deleted");
-    load();
+    try {
+      const selectedProducts = products.filter((product) => selected.includes(productIdentifier(product)));
+      await Promise.all(selectedProducts.map((product) => adminFetch(productApiPath(product), { method: "DELETE" })));
+      setSelected([]);
+      setProducts((current) => current.filter((product) => !selected.includes(productIdentifier(product))));
+      toast.success("Selected products deleted");
+      load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Bulk delete failed");
+    }
   };
 
   const toggleFeatured = async (product: StoreProduct) => {
-    await adminFetch(`/api/products/${product.slug}`, {
-      method: "PUT",
-      body: JSON.stringify({ isFeatured: !product.isFeatured, featured: !product.isFeatured })
-    });
-    toast.success("Featured status updated");
-    load();
+    try {
+      await adminFetch(productApiPath(product), {
+        method: "PUT",
+        body: JSON.stringify({ isFeatured: !product.isFeatured, featured: !product.isFeatured })
+      });
+      toast.success("Featured status updated");
+      load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Featured update failed");
+    }
   };
 
   return (
@@ -101,10 +120,12 @@ export default function AdminProductsPage() {
                 <input
                   type="checkbox"
                   aria-label={`Select ${product.name}`}
-                  checked={selected.includes(product.slug)}
+                  checked={selected.includes(productIdentifier(product))}
                   onChange={(e) =>
                     setSelected((cur) =>
-                      e.target.checked ? [...cur, product.slug] : cur.filter((id) => id !== product.slug)
+                      e.target.checked
+                        ? [...cur, productIdentifier(product)]
+                        : cur.filter((id) => id !== productIdentifier(product))
                     )
                   }
                   className="h-4 w-4 shrink-0"
@@ -138,8 +159,8 @@ export default function AdminProductsPage() {
                 {product.isFeatured ? "Yes" : "No"}
               </button>
               <div className="flex flex-wrap items-center gap-3">
-                <Link href={`/admin/products/${product.slug}/edit`} className="font-black text-artisan-terracotta">Edit</Link>
-                <ConfirmButton message="Delete this product?" onConfirm={() => removeProduct(product.slug)} className="font-black text-red-700">Delete</ConfirmButton>
+                <Link href={`/admin/products/${encodeURIComponent(productIdentifier(product))}/edit`} className="font-black text-artisan-terracotta">Edit</Link>
+                <ConfirmButton message="Delete this product?" onConfirm={() => removeProduct(product)} className="font-black text-red-700">Delete</ConfirmButton>
               </div>
             </article>
           ))}

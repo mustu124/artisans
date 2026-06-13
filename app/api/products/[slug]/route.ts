@@ -107,7 +107,7 @@ export async function DELETE(_: Request, { params }: { params: { slug: string } 
 
     const { data: product, error } = await supabase
       .from("products")
-      .delete()
+      .update({ active: false, updated_at: new Date().toISOString() })
       .eq("id", existing.id)
       .select("*")
       .single();
