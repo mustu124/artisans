@@ -1,3 +1,5 @@
+import type { StoreProduct } from "@/lib/product-data";
+
 export type GalleryItem = {
   _id: string;
   url: string;
@@ -6,6 +8,9 @@ export type GalleryItem = {
   caption: string;
   category: string;
   order: number;
+  productId?: string;
+  productSlug?: string;
+  productName?: string;
 };
 
 const imageUrls = [
@@ -64,4 +69,50 @@ export function filterGalleryItems(category?: string | null) {
   if (!category || category === "All") return fallbackGalleryItems;
   if (category === "Videos") return fallbackGalleryItems.filter((item) => item.type === "video");
   return fallbackGalleryItems.filter((item) => item.category === category);
+}
+
+export function productToGalleryItems(product: StoreProduct, productIndex = 0): GalleryItem[] {
+  const productKey = product.slug || product._id;
+  const imageItems = product.images.map((image, imageIndex) => ({
+    _id: `${productKey}-image-${imageIndex + 1}`,
+    url: image.url,
+    type: "image" as const,
+    thumbnailUrl: image.url,
+    caption: image.alt || product.name,
+    category: product.category,
+    order: productIndex * 100 + imageIndex + 1,
+    productId: product._id,
+    productSlug: product.slug,
+    productName: product.name
+  }));
+
+  if (!product.videoUrl) return imageItems;
+
+  return [
+    ...imageItems,
+    {
+      _id: `${productKey}-video`,
+      url: product.videoUrl,
+      type: "video" as const,
+      thumbnailUrl: product.images[0]?.url,
+      caption: `${product.name} video`,
+      category: product.category,
+      order: productIndex * 100 + imageItems.length + 1,
+      productId: product._id,
+      productSlug: product.slug,
+      productName: product.name
+    }
+  ];
+}
+
+export function filterProductGalleryItems(items: GalleryItem[], category?: string | null, type?: string | null) {
+  const normalizedCategory = category?.toLowerCase().trim();
+
+  return items.filter((item) => {
+    if (type && item.type !== type) return false;
+    if (!normalizedCategory || normalizedCategory === "all") return true;
+    if (normalizedCategory === "videos") return item.type === "video";
+    if (normalizedCategory === "wall hangings") return item.category.toLowerCase().startsWith("wall hanging");
+    return item.category.toLowerCase() === normalizedCategory;
+  });
 }

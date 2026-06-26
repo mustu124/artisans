@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
@@ -10,18 +11,18 @@ import { AdminSection, ConfirmButton } from "@/components/admin/AdminCards";
 import { adminFetch } from "@/lib/admin-client";
 import { getDisplayMediaUrl } from "@/lib/media";
 import type { GalleryItem } from "@/lib/gallery-data";
+import { PRODUCT_CATEGORIES } from "@/lib/product-data";
 
 const galleryCategories = [
+  ...PRODUCT_CATEGORIES,
   "Lifestyle",
-  "Handbag",
   "Wall Hangings",
   "Runners",
   "Pot Hangers",
-  "Key Chains",
   "Dinner Mats",
   "Coasters",
   "Videos"
-];
+].filter((category, index, categories) => categories.indexOf(category) === index);
 
 type GalleryDraft = {
   url: string;
@@ -218,6 +219,8 @@ export default function AdminGalleryPage() {
 function SortableGalleryItem({ item, onDelete }: { item: GalleryItem; onDelete: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: item._id });
   const imageSrc = item.thumbnailUrl || item.url;
+  const productHref = item.productSlug ? `/shop/${encodeURIComponent(item.productSlug)}` : "";
+  const editProductHref = item.productSlug ? `/admin/products/${encodeURIComponent(item.productSlug)}/edit` : "";
 
   return (
     <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className="relative overflow-hidden rounded-2xl border border-artisan-brown/10 bg-artisan-sand">
@@ -226,16 +229,27 @@ function SortableGalleryItem({ item, onDelete }: { item: GalleryItem; onDelete: 
         {item.type === "video" && <span className="absolute left-2 top-2 rounded-full bg-artisan-brown px-2 py-1 text-xs font-black text-white">Video</span>}
       </div>
       <div className="grid gap-2 p-3">
-        <p className="font-bold text-artisan-brown">{item.caption}</p>
+        <p className="font-bold text-artisan-brown">{item.productName || item.caption}</p>
         <p className="text-xs font-bold uppercase tracking-[0.12em] text-artisan-sage">{item.category}</p>
-        <div className="flex gap-2">
-          <button type="button" {...attributes} {...listeners} className="rounded-full border border-artisan-brown/20 px-3 py-1 text-xs font-black text-artisan-brown">
-            Drag
-          </button>
-          <ConfirmButton message="Delete this gallery item?" onConfirm={onDelete} className="rounded-full bg-red-700 px-3 py-1 text-xs font-black text-white">
-            Delete
-          </ConfirmButton>
-        </div>
+        {item.productSlug ? (
+          <div className="flex flex-wrap gap-2">
+            <Link href={editProductHref} className="rounded-full border border-artisan-brown/20 px-3 py-1 text-xs font-black text-artisan-brown">
+              Edit product
+            </Link>
+            <Link href={productHref} className="rounded-full bg-artisan-terracotta px-3 py-1 text-xs font-black text-white">
+              View product
+            </Link>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <button type="button" {...attributes} {...listeners} className="rounded-full border border-artisan-brown/20 px-3 py-1 text-xs font-black text-artisan-brown">
+              Drag
+            </button>
+            <ConfirmButton message="Delete this gallery item?" onConfirm={onDelete} className="rounded-full bg-red-700 px-3 py-1 text-xs font-black text-white">
+              Delete
+            </ConfirmButton>
+          </div>
+        )}
       </div>
     </div>
   );

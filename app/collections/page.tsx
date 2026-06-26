@@ -2,20 +2,15 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { GalleryItem } from "@/lib/gallery-data";
 import { getDisplayMediaUrl } from "@/lib/media";
+import { PRODUCT_CATEGORIES } from "@/lib/product-data";
 
 const filters = [
   "All",
-  "Handbag",
-  "Wall Hangings",
-  "Runners",
-  "Pot Hangers",
-  "Key Chains",
-  "Dinner Mats",
-  "Coasters",
-  "Lifestyle",
+  ...PRODUCT_CATEGORIES,
   "Videos"
 ];
 
@@ -167,6 +162,50 @@ function GalleryTile({ item, onClick }: { item: GalleryItem; onClick: () => void
   const heightSeed = item.order ?? 1;
   const thumbnailSrc = item.type === "video" ? item.thumbnailUrl || "/logo.png" : item.thumbnailUrl || item.url;
   const optimizedThumbnail = thumbnailSrc === "/logo.png" ? thumbnailSrc : optimizedMediaUrl(thumbnailSrc, 720);
+  const productHref = item.productSlug ? `/shop/${encodeURIComponent(item.productSlug)}` : "";
+
+  if (productHref) {
+    return (
+      <motion.div
+        layout
+        initial={{ opacity: 0, y: 24, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 16, scale: 0.96 }}
+        transition={{ duration: 0.38, ease: "easeOut" }}
+        className="mb-4 break-inside-avoid"
+      >
+        <Link
+          href={productHref}
+          className="group relative block w-full overflow-hidden rounded-2xl bg-artisan-sand text-left shadow-[0_16px_40px_rgba(92,45,10,0.12)] focus:outline-none focus:ring-2 focus:ring-artisan-terracotta"
+        >
+          <Image
+            src={optimizedThumbnail}
+            alt={item.caption || item.productName || "Artisan Root gallery media"}
+            width={640}
+            height={heightSeed % 3 === 0 ? 820 : heightSeed % 3 === 1 ? 520 : 700}
+            sizes="(min-width: 1280px) 20vw, (min-width: 640px) 33vw, 50vw"
+            loading="lazy"
+            quality={78}
+            className="h-auto w-full object-cover transition duration-700 group-hover:scale-[1.04]"
+          />
+          <motion.div
+            className="absolute inset-0 flex items-end bg-gradient-to-t from-black/76 via-black/20 to-transparent p-4 opacity-0 group-hover:opacity-100"
+            transition={{ duration: 0.25 }}
+          >
+            <motion.div
+              initial={{ y: 18 }}
+              whileHover={{ y: 0 }}
+              className="translate-y-4 transition duration-300 group-hover:translate-y-0"
+            >
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-artisan-sand">{item.category}</p>
+              <p className="mt-1 font-heading text-lg font-bold leading-tight text-white">{item.productName || item.caption}</p>
+              <p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-white/85">View product</p>
+            </motion.div>
+          </motion.div>
+        </Link>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.button
