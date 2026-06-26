@@ -2,7 +2,6 @@ import { fail, ok } from "@/lib/api";
 import { assertAdmin } from "@/lib/admin-auth";
 import { fallbackProducts, normalizeProduct } from "@/lib/product-data";
 import {
-  filterGalleryItems,
   filterProductGalleryItems,
   productToGalleryItems,
   type GalleryItem
@@ -81,49 +80,16 @@ export async function GET(request: Request) {
       );
     }
 
-    const fallback = filterGalleryItems(type === "video" ? "Videos" : category).filter((item) =>
-      type ? item.type === type : true
-    );
-    const paginatedFallback = fallback.slice(from, page * limit);
-    let query = supabase
-      .from("gallery")
-      .select("*", { count: "exact" })
-      .order("order_index", { ascending: true })
-      .order("created_at", { ascending: false })
-      .range(from, to);
-
-    if (category && category !== "All" && category !== "Videos") query = query.eq("category", category);
-    if (category === "Videos") query = query.eq("type", "video");
-    if (type) query = query.eq("type", type);
-
-    const { data, error, count } = await query;
-    if (error) throw error;
-    const normalizedItems = (data ?? []).map((item) => normalizeSupabaseGalleryItem(item)) as GalleryItem[];
-    const total = count ?? normalizedItems.length;
-
-    if (normalizedItems.length > 0 || !canUseFallback) {
-      return ok(
-        {
-          items: normalizedItems,
-          total,
-          page,
-          hasMore: page * limit < total,
-          fallback: false,
-          source: "gallery"
-        },
-        "Gallery items loaded."
-      );
-    }
-
     return ok(
       {
-        items: paginatedFallback,
-        total: fallback.length,
+        items: [],
+        total: 0,
         page,
-        hasMore: page * limit < fallback.length,
-        fallback: true
+        hasMore: false,
+        fallback: false,
+        source: "products"
       },
-      "Gallery items loaded from fallback gallery."
+      "No product media found for the gallery."
     );
   } catch (error) {
     return fail(error instanceof Error ? error.message : "Failed to load gallery items.");
