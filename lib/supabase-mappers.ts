@@ -55,7 +55,8 @@ export function productPayloadToSupabase(payload: AnyRecord) {
     active: payload.active ?? true,
     tags: Array.isArray(payload.tags) ? payload.tags : [],
     rating: payload.rating ?? { average: 0, count: 0 },
-    variants: Array.isArray(payload.variants) ? payload.variants : []
+    variants: Array.isArray(payload.variants) ? payload.variants : [],
+    updated_at: new Date().toISOString()
   };
 }
 

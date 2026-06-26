@@ -89,7 +89,7 @@ export async function GET(request: Request) {
         ? "price"
         : sort === "price_desc" || sort === "price-desc"
           ? "price"
-          : "created_at";
+          : "updated_at";
     const ascending = sort === "price_asc" || sort === "price-asc";
 
     let query = supabase
@@ -97,6 +97,7 @@ export async function GET(request: Request) {
       .select("*", { count: "exact" })
       .eq("active", true)
       .order(sortColumn, { ascending })
+      .order("created_at", { ascending: false })
       .range(from, to);
 
     if (category) query = query.eq("category", category);

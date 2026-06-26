@@ -18,6 +18,8 @@ import { getDisplayMediaUrl } from "@/lib/media";
 type Product = {
   _id: string;
   name: string;
+  isFeatured?: boolean;
+  featured?: boolean;
   category: string;
   price: number;
   images: Array<{
@@ -171,6 +173,23 @@ function looksLikeDatabaseId(value?: string) {
     /^[a-f\d]{32}$/i.test(compact) ||
     /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(normalized)
   );
+}
+
+function getProductDisplayName(product: Pick<Product, "name" | "category">) {
+  if (!looksLikeDatabaseId(product.name)) return product.name;
+  return `Handmade ${product.category}`;
+}
+
+function prioritizeDisplayProducts(products: Product[]) {
+  return [...products].sort((a, b) => {
+    const aHasRealName = looksLikeDatabaseId(a.name) ? 0 : 1;
+    const bHasRealName = looksLikeDatabaseId(b.name) ? 0 : 1;
+    if (aHasRealName !== bHasRealName) return bHasRealName - aHasRealName;
+
+    const aFeatured = a.isFeatured || a.featured ? 1 : 0;
+    const bFeatured = b.isFeatured || b.featured ? 1 : 0;
+    return bFeatured - aFeatured;
+  });
 }
 
 function getHeroSlideHeadline(slide: NonNullable<PublicSettings["heroSlides"]>[number]) {
@@ -653,14 +672,14 @@ function FeaturedProducts() {
 
     async function loadBestsellers() {
       setIsLoading(true);
-      const featuredResponse = await fetch("/api/products?featured=true", { cache: "no-store" });
-      const featuredData = (await featuredResponse.json()) as { data?: { products: Product[] }; products?: Product[] };
-      let nextProducts = featuredData.data?.products ?? featuredData.products ?? [];
+      const productsResponse = await fetch("/api/products?limit=50&sort=newest", { cache: "no-store" });
+      const productsData = (await productsResponse.json()) as { data?: { products: Product[] }; products?: Product[] };
+      let nextProducts = prioritizeDisplayProducts(productsData.data?.products ?? productsData.products ?? []);
 
       if (!nextProducts.length) {
-        const fallbackResponse = await fetch("/api/products?limit=8&sort=newest", { cache: "no-store" });
+        const fallbackResponse = await fetch("/api/products?featured=true", { cache: "no-store" });
         const fallbackData = (await fallbackResponse.json()) as { data?: { products: Product[] }; products?: Product[] };
-        nextProducts = fallbackData.data?.products ?? fallbackData.products ?? [];
+        nextProducts = prioritizeDisplayProducts(fallbackData.data?.products ?? fallbackData.products ?? []);
       }
 
       if (isMounted) {
@@ -712,6 +731,7 @@ function FeaturedProducts() {
           ))}
 
         {!isLoading && products.slice(0, 8).map((product) => {
+          const displayName = getProductDisplayName(product);
           const cartQuantity = items
             .filter((item) => item.product._id === product._id)
             .reduce((total, item) => total + item.quantity, 0);
@@ -730,7 +750,7 @@ function FeaturedProducts() {
               <motion.div className="relative h-full w-full" whileHover={{ scale: 1.07 }} transition={{ duration: 0.5, ease: "easeOut" }}>
                 <Image
                   src={getDisplayMediaUrl(product.images?.[0]?.url)}
-                  alt={product.images?.[0]?.alt ?? product.name}
+                  alt={looksLikeDatabaseId(product.images?.[0]?.alt) ? displayName : product.images?.[0]?.alt ?? displayName}
                   fill
                   sizes="(min-width: 1280px) 25vw, (min-width: 640px) 33vw, 50vw"
                   loading="lazy"
@@ -740,7 +760,7 @@ function FeaturedProducts() {
             </div>
             <div className="flex flex-1 flex-col space-y-2.5 p-3 sm:space-y-3 sm:p-4 md:p-5">
               <h3 className="min-h-[2.6rem] font-heading text-[1rem] font-bold leading-tight text-artisan-brown sm:text-lg md:text-xl">
-                {product.name}
+                {displayName}
               </h3>
               <div className="flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <span className="inline-flex min-h-8 max-w-full items-center rounded-full bg-artisan-sand px-2.5 py-1 text-[8px] font-black uppercase leading-tight tracking-[0.08em] text-artisan-sage sm:min-h-0 sm:px-3 sm:text-[11px] sm:tracking-[0.12em]">
@@ -754,7 +774,7 @@ function FeaturedProducts() {
                   onClick={() =>
                     addItem({
                       productId: product._id,
-                      name: product.name,
+                      name: displayName,
                       price: product.price,
                       imageUrl: getDisplayMediaUrl(product.images?.[0]?.url)
                     })
@@ -768,7 +788,7 @@ function FeaturedProducts() {
                 </motion.button>
                 <motion.button
                   type="button"
-                  aria-label={`Add ${product.name} to wishlist`}
+                  aria-label={`Add ${displayName} to wishlist`}
                   whileHover={{ scale: 1.12, color: "#c4714a" }}
                   whileTap={{ scale: 0.9 }}
                   className="h-10 w-10 shrink-0 rounded-full border border-artisan-brown/15 bg-white text-lg text-artisan-brown"
