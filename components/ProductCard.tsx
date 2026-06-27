@@ -114,9 +114,16 @@ export function ProductCard({ product, onQuickView, onMoreLikeThis }: ProductCar
           </h3>
         </Link>
         <div className="mt-3 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <span className="inline-flex min-h-7 max-w-full items-center rounded-full bg-artisan-cream px-2.5 py-1 text-[8px] font-black uppercase leading-tight tracking-[0.08em] text-artisan-sage sm:min-h-0 sm:px-3 sm:text-[10px] sm:tracking-[0.1em]">
-            {product.category}
-          </span>
+          <div className="flex max-w-full flex-wrap gap-1.5">
+            <span className="inline-flex min-h-7 max-w-full items-center rounded-full bg-artisan-cream px-2.5 py-1 text-[8px] font-black uppercase leading-tight tracking-[0.08em] text-artisan-sage sm:min-h-0 sm:px-3 sm:text-[10px] sm:tracking-[0.1em]">
+              {product.category}
+            </span>
+            {product.subcategory && (
+              <span className="inline-flex min-h-7 max-w-full items-center rounded-full border border-artisan-brown/10 bg-white px-2.5 py-1 text-[8px] font-black uppercase leading-tight tracking-[0.08em] text-artisan-terracotta sm:min-h-0 sm:px-3 sm:text-[10px] sm:tracking-[0.1em]">
+                {product.subcategory}
+              </span>
+            )}
+          </div>
           <span className="font-black text-artisan-brown sm:text-base">{"\u20B9"}{product.price.toLocaleString("en-IN")}</span>
         </div>
 
@@ -204,7 +211,9 @@ export function QuickViewModal({
               >
                 Close
               </button>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-artisan-sage">{product.category}</p>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-artisan-sage">
+                {product.subcategory ? `${product.category} / ${product.subcategory}` : product.category}
+              </p>
               <h2 className="mt-3 font-heading text-3xl font-bold text-artisan-brown">{product.name}</h2>
               <p className="mt-3 text-2xl font-black text-artisan-terracotta">
                 {"\u20B9"}{product.price.toLocaleString("en-IN")}

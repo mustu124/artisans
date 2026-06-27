@@ -31,3 +31,6 @@
  GET /api/settings 200 in 38ms
  ✓ Compiled in 511ms (651 modules)
  ✓ Compiled in 410ms (651 modules)
+ ✓ Compiled in 4.7s (1289 modules)
+ ✓ Compiled in 1700ms (651 modules)
+ ✓ Compiled in 809ms (1289 modules)

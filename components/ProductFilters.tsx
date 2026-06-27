@@ -3,8 +3,15 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { PRODUCT_CATEGORIES } from "@/lib/product-data";
 
+export type CategoryFilterOption = {
+  name: string;
+  subcategories?: string[];
+  visible?: boolean;
+};
+
 export type ProductFiltersState = {
   categories: string[];
+  subcategories: string[];
   maxPrice: number;
   sort: string;
 };
@@ -12,6 +19,7 @@ export type ProductFiltersState = {
 type ProductFiltersProps = {
   filters: ProductFiltersState;
   onChange: (filters: ProductFiltersState) => void;
+  categories?: CategoryFilterOption[];
   isMobileOpen?: boolean;
   onClose?: () => void;
 };
@@ -23,9 +31,9 @@ const sortOptions = [
   { value: "price-desc", label: "Price: High to Low" }
 ];
 
-export function ProductFilters({ filters, onChange, isMobileOpen, onClose }: ProductFiltersProps) {
+export function ProductFilters({ filters, onChange, categories, isMobileOpen, onClose }: ProductFiltersProps) {
   const content = (
-    <FilterContent filters={filters} onChange={onChange} onClose={onClose} />
+    <FilterContent filters={filters} onChange={onChange} categories={categories} onClose={onClose} />
   );
 
   return (
@@ -62,18 +70,52 @@ export function ProductFilters({ filters, onChange, isMobileOpen, onClose }: Pro
 function FilterContent({
   filters,
   onChange,
+  categories,
   onClose
 }: {
   filters: ProductFiltersState;
   onChange: (filters: ProductFiltersState) => void;
+  categories?: CategoryFilterOption[];
   onClose?: () => void;
 }) {
+  const visibleCategories = (categories?.length
+    ? categories.filter((category) => category.visible !== false)
+    : PRODUCT_CATEGORIES.map((name) => ({ name, subcategories: [] }))
+  );
+  const selectedCategoryNames = filters.categories.length
+    ? filters.categories
+    : visibleCategories.map((category) => category.name);
+  const availableSubcategories = visibleCategories
+    .filter((category) => selectedCategoryNames.includes(category.name))
+    .flatMap((category) => (category.subcategories ?? []).map((subcategory) => ({ category: category.name, subcategory })))
+    .filter(
+      (item, index, items) =>
+        items.findIndex((candidate) => candidate.subcategory.toLowerCase() === item.subcategory.toLowerCase()) === index
+    );
+
   const toggleCategory = (category: string) => {
     const categories = filters.categories.includes(category)
       ? filters.categories.filter((item) => item !== category)
       : [...filters.categories, category];
+    const allowedSubcategories = new Set(
+      visibleCategories
+        .filter((item) => !categories.length || categories.includes(item.name))
+        .flatMap((item) => item.subcategories ?? [])
+    );
 
-    onChange({ ...filters, categories });
+    onChange({
+      ...filters,
+      categories,
+      subcategories: filters.subcategories.filter((subcategory) => allowedSubcategories.has(subcategory))
+    });
+  };
+
+  const toggleSubcategory = (subcategory: string) => {
+    const subcategories = filters.subcategories.includes(subcategory)
+      ? filters.subcategories.filter((item) => item !== subcategory)
+      : [...filters.subcategories, subcategory];
+
+    onChange({ ...filters, subcategories });
   };
 
   return (
@@ -98,19 +140,45 @@ function FilterContent({
       <div className="mt-6">
         <p className="text-xs font-black uppercase tracking-[0.16em] text-artisan-sage">Category</p>
         <div className="mt-3 grid gap-2">
-          {PRODUCT_CATEGORIES.map((category) => (
-            <label key={category} className="flex cursor-pointer items-center gap-3 text-sm font-bold text-artisan-brown">
+          {visibleCategories.map((category) => (
+            <label key={category.name} className="flex cursor-pointer items-center gap-3 text-sm font-bold text-artisan-brown">
               <input
                 type="checkbox"
-                checked={filters.categories.includes(category)}
-                onChange={() => toggleCategory(category)}
+                checked={filters.categories.includes(category.name)}
+                onChange={() => toggleCategory(category.name)}
                 className="h-4 w-4 accent-artisan-terracotta"
               />
-              {category}
+              {category.name}
             </label>
           ))}
         </div>
       </div>
+
+      {availableSubcategories.length > 0 && (
+        <div className="mt-7">
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-artisan-sage">Subcategory</p>
+          <div className="mt-3 grid gap-2">
+            {availableSubcategories.map(({ category, subcategory }) => (
+              <label key={`${category}-${subcategory}`} className="flex cursor-pointer items-start gap-3 text-sm font-bold text-artisan-brown">
+                <input
+                  type="checkbox"
+                  checked={filters.subcategories.includes(subcategory)}
+                  onChange={() => toggleSubcategory(subcategory)}
+                  className="mt-0.5 h-4 w-4 accent-artisan-terracotta"
+                />
+                <span>
+                  {subcategory}
+                  {!filters.categories.length && (
+                    <span className="mt-0.5 block text-[10px] font-black uppercase tracking-[0.12em] text-artisan-sage">
+                      {category}
+                    </span>
+                  )}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mt-7">
         <label htmlFor="max-price" className="text-xs font-black uppercase tracking-[0.16em] text-artisan-sage">
@@ -148,7 +216,7 @@ function FilterContent({
 
       <button
         type="button"
-        onClick={() => onChange({ categories: [], maxPrice: 3500, sort: "newest" })}
+        onClick={() => onChange({ categories: [], subcategories: [], maxPrice: 3500, sort: "newest" })}
         className="mt-7 w-full rounded-full border border-artisan-brown/20 px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-artisan-brown transition hover:border-artisan-terracotta hover:text-artisan-terracotta focus:outline-none focus:ring-2 focus:ring-artisan-terracotta"
       >
         Reset Filters

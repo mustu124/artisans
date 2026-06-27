@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { ProductCard, ProductSkeleton, QuickViewModal } from "@/components/ProductCard";
-import { ProductFilters, type ProductFiltersState } from "@/components/ProductFilters";
+import { ProductFilters, type CategoryFilterOption, type ProductFiltersState } from "@/components/ProductFilters";
 import type { StoreProduct } from "@/lib/product-data";
 
 type ProductsResponse = {
@@ -23,6 +23,7 @@ type ProductsResponse = {
 
 const initialFilters: ProductFiltersState = {
   categories: [],
+  subcategories: [],
   maxPrice: 3500,
   sort: "newest"
 };
@@ -38,10 +39,13 @@ export default function ShopPage() {
 function ShopContent() {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get("category");
+  const initialSubcategory = searchParams.get("subcategory");
   const [filters, setFilters] = useState<ProductFiltersState>({
     ...initialFilters,
-    categories: initialCategory ? [initialCategory] : []
+    categories: initialCategory ? [initialCategory] : [],
+    subcategories: initialSubcategory ? [initialSubcategory] : []
   });
+  const [categoryOptions, setCategoryOptions] = useState<CategoryFilterOption[]>([]);
   const [products, setProducts] = useState<StoreProduct[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -59,12 +63,30 @@ function ShopContent() {
     params.set("maxPrice", String(filters.maxPrice));
     params.set("sort", filters.sort);
     if (filters.categories.length === 1) params.set("category", filters.categories[0]);
+    if (filters.subcategories.length === 1) params.set("subcategory", filters.subcategories[0]);
     return params.toString();
-  }, [filters.categories, filters.maxPrice, filters.sort, page]);
+  }, [filters.categories, filters.maxPrice, filters.sort, filters.subcategories, page]);
 
   useEffect(() => {
     setPage(1);
   }, [filters]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetch("/api/settings", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((payload: { data?: { settings?: { categories?: CategoryFilterOption[] } } }) => {
+        if (isMounted) setCategoryOptions(payload.data?.settings?.categories ?? []);
+      })
+      .catch(() => {
+        if (isMounted) setCategoryOptions([]);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -77,8 +99,15 @@ function ShopContent() {
       const payload = data.data ?? data;
       const nextProducts = payload.products ?? [];
       const incomingProducts =
-        filters.categories.length > 1
-          ? nextProducts.filter((product) => filters.categories.includes(product.category))
+        filters.categories.length > 1 || filters.subcategories.length > 1
+          ? nextProducts.filter((product) => {
+              const matchesCategory = !filters.categories.length || filters.categories.includes(product.category);
+              const matchesSubcategory =
+                !filters.subcategories.length ||
+                (product.subcategory ? filters.subcategories.includes(product.subcategory) : false);
+
+              return matchesCategory && matchesSubcategory;
+            })
           : nextProducts;
 
       if (!isMounted) return;
@@ -101,7 +130,7 @@ function ShopContent() {
     return () => {
       isMounted = false;
     };
-  }, [filters.categories, page, queryString]);
+  }, [filters.categories, filters.subcategories, page, queryString]);
 
   useEffect(() => {
     if (!moreLikeThisProduct) {
@@ -121,6 +150,7 @@ function ShopContent() {
 
   const appliedPills = [
     ...filters.categories.map((category) => ({ label: category, value: category, type: "category" })),
+    ...filters.subcategories.map((subcategory) => ({ label: subcategory, value: subcategory, type: "subcategory" })),
     ...(filters.maxPrice < 3500
       ? [{ label: `Under \u20B9${filters.maxPrice.toLocaleString("en-IN")}`, value: "price", type: "price" }]
       : [])
@@ -162,6 +192,7 @@ function ShopContent() {
         <ProductFilters
           filters={filters}
           onChange={updateFilters}
+          categories={categoryOptions}
           isMobileOpen={isFilterOpen}
           onClose={() => setIsFilterOpen(false)}
         />
@@ -178,9 +209,21 @@ function ShopContent() {
                   exit={{ opacity: 0, scale: 0.9 }}
                   onClick={() => {
                     if (pill.type === "category") {
+                      const nextCategories = filters.categories.filter((category) => category !== pill.value);
+                      const allowedSubcategories = new Set(
+                        categoryOptions
+                          .filter((category) => !nextCategories.length || nextCategories.includes(category.name))
+                          .flatMap((category) => category.subcategories ?? [])
+                      );
                       setFilters({
                         ...filters,
-                        categories: filters.categories.filter((category) => category !== pill.value)
+                        categories: nextCategories,
+                        subcategories: filters.subcategories.filter((subcategory) => allowedSubcategories.has(subcategory))
+                      });
+                    } else if (pill.type === "subcategory") {
+                      setFilters({
+                        ...filters,
+                        subcategories: filters.subcategories.filter((subcategory) => subcategory !== pill.value)
                       });
                     } else {
                       setFilters({ ...filters, maxPrice: 3500 });

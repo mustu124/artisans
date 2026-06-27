@@ -387,11 +387,14 @@ export function filterFallbackProducts({
   category,
   exclude,
   featured,
+  maxPrice,
   query
 }: {
   category?: string | null;
+  subcategory?: string | null;
   exclude?: string | null;
   featured?: boolean;
+  maxPrice?: number;
   query?: string | null;
 }) {
   const normalizedQuery = query?.toLowerCase().trim();
@@ -399,6 +402,8 @@ export function filterFallbackProducts({
   return fallbackProducts.filter((product) => {
     if (featured && !product.isFeatured) return false;
     if (category && product.category !== category) return false;
+    if (subcategory && product.subcategory !== subcategory) return false;
+    if (maxPrice && product.price > maxPrice) return false;
     if (exclude && (product._id === exclude || product.slug === exclude)) return false;
 
     if (normalizedQuery) {
