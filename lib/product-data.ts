@@ -385,6 +385,7 @@ export function normalizeProduct(product: Record<string, unknown>): StoreProduct
 
 export function filterFallbackProducts({
   category,
+  subcategory,
   exclude,
   featured,
   maxPrice,
