@@ -1049,7 +1049,7 @@ function InstagramStrip({ instagramUrl }: { instagramUrl?: string }) {
               whileHover={{ opacity: 1 }}
               transition={{ duration: 0.25 }}
             >
-              <span className="text-3xl">◎</span>
+              <Image src="/instagram-icon.png" alt="" width={42} height={42} className="h-10 w-10 invert" />
             </motion.div>
           </motion.a>
         ))}
@@ -1113,7 +1113,11 @@ function Footer({ settings }: { settings: PublicSettings | null }) {
                 whileTap={{ scale: 0.95 }}
                 className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-lg font-black text-artisan-brown shadow-sm"
               >
-                {icon}
+                {label === "Instagram" ? (
+                  <Image src="/instagram-icon.png" alt="" width={22} height={22} className="h-5 w-5 object-contain" />
+                ) : (
+                  icon
+                )}
               </motion.a>
             ))}
           </motion.div>
@@ -1160,3 +1164,4 @@ function LeafOrnament() {
     </motion.svg>
   );
 }
+

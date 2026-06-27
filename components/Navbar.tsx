@@ -438,7 +438,11 @@ function MobileSidebar({
                   whileHover={{ y: -3, backgroundColor: "#c4714a", color: "#ffffff" }}
                   className="flex h-11 w-11 items-center justify-center rounded-full bg-white font-black shadow-sm focus:outline-none focus:ring-2 focus:ring-artisan-terracotta"
                 >
-                  {icon}
+                  {label === "Instagram" ? (
+                    <Image src="/instagram-icon.png" alt="" width={22} height={22} className="h-5 w-5 object-contain" />
+                  ) : (
+                    icon
+                  )}
                 </motion.a>
               ))}
             </motion.div>

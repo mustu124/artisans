@@ -10,8 +10,7 @@ import { PRODUCT_CATEGORIES } from "@/lib/product-data";
 
 const filters = [
   "All",
-  ...PRODUCT_CATEGORIES,
-  "Videos"
+  ...PRODUCT_CATEGORIES
 ];
 
 type GalleryResponse = {
@@ -44,7 +43,8 @@ export default function CollectionsPage() {
     const params = new URLSearchParams({
       page: String(page),
       limit: "20",
-      category: activeFilter
+      category: activeFilter,
+      type: "image"
     });
     const response = await fetch(`/api/gallery?${params.toString()}`);
     const data = (await response.json()) as GalleryResponse;
