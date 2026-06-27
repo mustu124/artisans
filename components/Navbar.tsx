@@ -439,7 +439,7 @@ function MobileSidebar({
                   className="flex h-11 w-11 items-center justify-center rounded-full bg-white font-black shadow-sm focus:outline-none focus:ring-2 focus:ring-artisan-terracotta"
                 >
                   {label === "Instagram" ? (
-                    <Image src="/instagram-icon.png" alt="" width={22} height={22} className="h-5 w-5 object-contain" />
+                    <Image src="/instagram-icon.png" alt="" width={30} height={30} className="h-7 w-7 object-contain" />
                   ) : (
                     icon
                   )}
