@@ -614,14 +614,9 @@ function CategoryCircle({
   return (
     <motion.a
       href={`/shop?category=${encodeURIComponent(name)}`}
-      variants={{
-        hidden: { opacity: 0, scale: 0.8 },
-        show: {
-          opacity: 1,
-          scale: 1,
-          transition: { delay: index * 0.1, duration: 0.55, ease: "easeOut" }
-        }
-      }}
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: Math.min(index * 0.06, 0.42), duration: 0.45, ease: "easeOut" }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
       whileHover={{
