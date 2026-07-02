@@ -82,7 +82,10 @@ export async function PUT(request: Request, { params }: { params: { slug: string
 
     const { data: product, error } = await supabase
       .from("products")
-      .update(productPayloadToSupabase(payload))
+      .update(productPayloadToSupabase({
+        ...normalizeSupabaseProduct(existing),
+        ...payload
+      }))
       .eq("id", existing.id)
       .select("*")
       .single();

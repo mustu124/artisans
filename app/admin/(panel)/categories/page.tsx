@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { AdminSection } from "@/components/admin/AdminCards";
 import { adminFetch } from "@/lib/admin-client";
@@ -31,14 +31,17 @@ export default function AdminCategoriesPage() {
   const [baseSettings, setBaseSettings] = useState<Record<string, unknown>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const savedCategoryNames = useRef<string[]>(defaultCategories.map((category) => category.name));
   const storageKey = "artisan-root-categories-draft-v2";
 
   useEffect(() => {
     adminFetch<{ settings: Record<string, unknown> & { categories?: CategorySetting[] } }>("/api/settings")
       .then((res) => {
         setBaseSettings(res.data.settings);
+        const loadedCategories = res.data.settings.categories?.length ? res.data.settings.categories : defaultCategories;
+        savedCategoryNames.current = loadedCategories.map((category) => category.name);
         setCategories(
-          (res.data.settings.categories?.length ? res.data.settings.categories : defaultCategories).map((category) => ({
+          loadedCategories.map((category) => ({
             ...category,
             subcategoriesInput: category.subcategories?.join(", ") ?? ""
           }))
@@ -64,6 +67,20 @@ export default function AdminCategoriesPage() {
     setCategories((current) => current.map((category, currentIndex) => (currentIndex === index ? { ...category, [key]: value } : category)));
   };
 
+  const addCategory = () => {
+    setCategories((current) => [
+      ...current,
+      {
+        name: `New category ${current.length + 1}`,
+        icon: "Craft",
+        description: "",
+        subcategories: [],
+        subcategoriesInput: "",
+        visible: true
+      }
+    ]);
+  };
+
   const save = async () => {
     setIsSaving(true);
     try {
@@ -75,11 +92,28 @@ export default function AdminCategoriesPage() {
           .filter(Boolean)
       }));
 
+      const categoryRenames = payloadCategories.flatMap((category, index) => {
+        const previousName = savedCategoryNames.current[index];
+        return previousName && previousName !== category.name
+          ? [{ from: previousName, to: category.name }]
+          : [];
+      });
+
+      if (payloadCategories.some((category) => !category.name.trim())) {
+        throw new Error("Every category needs a name.");
+      }
+
+      const normalizedNames = payloadCategories.map((category) => category.name.trim().toLowerCase());
+      if (new Set(normalizedNames).size !== normalizedNames.length) {
+        throw new Error("Category names must be unique.");
+      }
+
       const saved = await adminFetch<{ settings: Record<string, unknown> }>("/api/settings", {
         method: "PUT",
-        body: JSON.stringify({ ...baseSettings, categories: payloadCategories })
+        body: JSON.stringify({ ...baseSettings, categories: payloadCategories, categoryRenames })
       });
       setBaseSettings(saved.data.settings);
+      savedCategoryNames.current = payloadCategories.map((category) => category.name);
       window.localStorage.removeItem(storageKey);
       toast.success("Categories saved");
     } catch (error) {
@@ -97,9 +131,14 @@ export default function AdminCategoriesPage() {
           <h1 className="font-heading text-4xl font-bold text-artisan-brown">Categories</h1>
           <p className="mt-1 text-sm text-stone-500">{visibleCount} visible categories in navigation and storefront modules.</p>
         </div>
-        <button disabled={isSaving || isLoading} onClick={save} className="rounded-full bg-artisan-terracotta px-6 py-3 text-sm font-black uppercase tracking-[0.14em] text-white disabled:opacity-60">
-          {isSaving ? "Saving..." : "Save Categories"}
-        </button>
+        <div className="flex flex-wrap gap-3">
+          <button type="button" disabled={isSaving || isLoading} onClick={addCategory} className="rounded-full border border-artisan-brown px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-artisan-brown disabled:opacity-60">
+            Add Category
+          </button>
+          <button disabled={isSaving || isLoading} onClick={save} className="rounded-full bg-artisan-terracotta px-6 py-3 text-sm font-black uppercase tracking-[0.14em] text-white disabled:opacity-60">
+            {isSaving ? "Saving..." : "Save Categories"}
+          </button>
+        </div>
       </div>
 
       <AdminSection title="Category Manager" description="Edit display labels, short icons, descriptions, and storefront visibility.">

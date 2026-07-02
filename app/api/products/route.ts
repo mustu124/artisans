@@ -52,6 +52,11 @@ async function createUniqueSlug(supabase: ReturnType<typeof getSupabaseAdmin>, d
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
+    const adminView = searchParams.get("admin") === "true";
+    if (adminView) {
+      const unauthorized = await assertAdmin();
+      if (unauthorized) return unauthorized;
+    }
     const category = searchParams.get("category");
     const subcategory = searchParams.get("subcategory");
     const featured = searchParams.get("featured") === "true";
@@ -59,7 +64,7 @@ export async function GET(request: Request) {
     const sort = searchParams.get("sort") ?? "newest";
     const maxPrice = Number(searchParams.get("maxPrice") ?? 0);
     const page = Math.max(Number(searchParams.get("page") ?? 1), 1);
-    const limit = Math.min(Math.max(Number(searchParams.get("limit") ?? 12), 1), 50);
+    const limit = Math.min(Math.max(Number(searchParams.get("limit") ?? 12), 1), adminView ? 200 : 50);
     const supabaseConfigured = isSupabaseConfigured();
     const canUseFallback = process.env.NODE_ENV !== "production";
     const fallbackFiltered = sortFallback(filterFallbackProducts({ category, exclude, featured }), sort);
@@ -96,10 +101,11 @@ export async function GET(request: Request) {
     let query = supabase
       .from("products")
       .select("*", { count: "exact" })
-      .eq("active", true)
       .order(sortColumn, { ascending })
       .order("created_at", { ascending: false })
       .range(from, to);
+
+    if (!adminView) query = query.eq("active", true);
 
     if (category) query = query.eq("category", category);
     if (subcategory) query = query.eq("subcategory", subcategory);

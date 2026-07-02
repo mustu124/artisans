@@ -205,6 +205,28 @@ export async function PUT(request: Request) {
       .single();
 
     if (error) throw error;
+
+    const categoryRenames = Array.isArray(payload.categoryRenames)
+      ? payload.categoryRenames.filter(
+          (rename: unknown): rename is { from: string; to: string } =>
+            typeof rename === "object" &&
+            rename !== null &&
+            typeof (rename as { from?: unknown }).from === "string" &&
+            typeof (rename as { to?: unknown }).to === "string" &&
+            Boolean((rename as { from: string }).from.trim()) &&
+            Boolean((rename as { to: string }).to.trim()) &&
+            (rename as { from: string; to: string }).from.trim() !== (rename as { from: string; to: string }).to.trim()
+        )
+      : [];
+
+    for (const rename of categoryRenames) {
+      const { error: renameError } = await supabase
+        .from("products")
+        .update({ category: rename.to.trim(), updated_at: new Date().toISOString() })
+        .eq("category", rename.from.trim());
+      if (renameError) throw renameError;
+    }
+
     return ok(
       { settings: normalizeSupabaseSettings(settings, defaultSettings) },
       "Settings updated.",

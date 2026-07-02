@@ -13,14 +13,21 @@ export default function AdminProductsPage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>([...PRODUCT_CATEGORIES]);
 
   const load = () =>
-    adminFetch<{ products: StoreProduct[] }>("/api/products?limit=100")
+    adminFetch<{ products: StoreProduct[] }>("/api/products?admin=true&limit=200")
       .then((res) => setProducts(res.data.products))
       .catch((error) => toast.error(error.message));
 
   useEffect(() => {
     load();
+    adminFetch<{ settings: { categories?: Array<{ name: string }> } }>("/api/settings")
+      .then((res) => {
+        const configured = (res.data.settings.categories ?? []).map((item) => item.name).filter(Boolean);
+        if (configured.length) setCategories(configured);
+      })
+      .catch((error) => toast.error(error.message));
   }, []);
 
   const visibleProducts = useMemo(
@@ -98,15 +105,16 @@ export default function AdminProductsPage() {
           <input value={search} onChange={(e) => setSearch(e.target.value)} className="field-input" placeholder="Search products" />
           <select value={category} onChange={(e) => setCategory(e.target.value)} className="field-input">
             <option value="">All categories</option>
-            {PRODUCT_CATEGORIES.map((item) => <option key={item}>{item}</option>)}
+            {categories.map((item) => <option key={item}>{item}</option>)}
           </select>
         </div>
         <div className="grid gap-3">
-          <div className="hidden rounded-xl bg-artisan-cream px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-artisan-sage xl:grid xl:grid-cols-[minmax(360px,1.7fr)_220px_120px_90px_120px_150px] xl:gap-5">
+          <div className="hidden rounded-xl bg-artisan-cream px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-artisan-sage xl:grid xl:grid-cols-[minmax(280px,1.7fr)_minmax(150px,1fr)_100px_70px_100px_100px_130px] xl:gap-4">
             <span>Product</span>
             <span>Category</span>
             <span>Price</span>
             <span>Stock</span>
+            <span>Status</span>
             <span>Featured</span>
             <span>Actions</span>
           </div>
@@ -114,7 +122,7 @@ export default function AdminProductsPage() {
           {visibleProducts.map((product) => (
             <article
               key={product._id}
-              className="grid gap-4 rounded-2xl border border-artisan-brown/10 bg-white p-4 shadow-sm xl:grid-cols-[minmax(360px,1.7fr)_220px_120px_90px_120px_150px] xl:items-center xl:gap-5"
+              className="grid gap-4 rounded-2xl border border-artisan-brown/10 bg-white p-4 shadow-sm xl:grid-cols-[minmax(280px,1.7fr)_minmax(150px,1fr)_100px_70px_100px_100px_130px] xl:items-center xl:gap-4"
             >
               <div className="flex min-w-0 items-center gap-3">
                 <input
@@ -151,6 +159,9 @@ export default function AdminProductsPage() {
                 <span className="mr-2 text-xs uppercase tracking-[0.12em] text-artisan-sage xl:hidden">Stock</span>
                 {product.stockCount}
               </div>
+              <span className={`w-fit rounded-full px-3 py-1.5 text-xs font-black uppercase tracking-[0.1em] ${product.active === false ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>
+                {product.active === false ? "Draft" : "Published"}
+              </span>
               <button
                 type="button"
                 onClick={() => toggleFeatured(product)}

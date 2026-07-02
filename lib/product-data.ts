@@ -33,6 +33,7 @@ export type StoreProduct = {
   shippingInfo?: string;
   isFeatured: boolean;
   featured?: boolean;
+  active?: boolean;
   inStock: boolean;
   stockCount: number;
   tags: string[];
@@ -373,6 +374,7 @@ export function normalizeProduct(product: Record<string, unknown>): StoreProduct
     shippingInfo: product.shippingInfo ? String(product.shippingInfo) : undefined,
     isFeatured,
     featured: isFeatured,
+    active: product.active === undefined ? true : Boolean(product.active),
     inStock: product.inStock === undefined ? true : Boolean(product.inStock),
     stockCount: Number(product.stockCount ?? product.inventory ?? 0),
     tags: Array.isArray(product.tags) ? (product.tags as string[]) : [],

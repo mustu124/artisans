@@ -18,11 +18,12 @@ import {
   useSortable
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { PRODUCT_CATEGORIES, slugifyProductName, type ProductCategory, type StoreProduct } from "@/lib/product-data";
+import { PRODUCT_CATEGORIES, slugifyProductName, type StoreProduct } from "@/lib/product-data";
 import { adminFetch } from "@/lib/admin-client";
 import { getDisplayMediaUrl } from "@/lib/media";
 
-type ProductDraft = Partial<StoreProduct> & {
+type ProductDraft = Partial<Omit<StoreProduct, "category">> & {
+  category?: string;
   tagsInput?: string;
 };
 
@@ -82,6 +83,11 @@ export function ProductForm({ product }: { product?: StoreProduct }) {
   const availableSubcategories = useMemo(() => {
     return categorySettings.find((category) => category.name === form.category)?.subcategories ?? [];
   }, [categorySettings, form.category]);
+  const availableCategories = useMemo(() => {
+    const configured = categorySettings.map((category) => category.name).filter(Boolean);
+    const current = form.category ? [String(form.category)] : [];
+    return Array.from(new Set(configured.length ? [...configured, ...current] : [...PRODUCT_CATEGORIES, ...current]));
+  }, [categorySettings, form.category]);
 
   useEffect(() => {
     if (!availableSubcategories.length || form.subcategory) return;
@@ -92,7 +98,7 @@ export function ProductForm({ product }: { product?: StoreProduct }) {
     setForm((current) => ({ ...current, [key]: value }));
   };
 
-  const updateCategory = (category: ProductCategory) => {
+  const updateCategory = (category: string) => {
     const nextSubcategories = categorySettings.find((item) => item.name === category)?.subcategories ?? [];
     setForm((current) => ({
       ...current,
@@ -172,8 +178,8 @@ export function ProductForm({ product }: { product?: StoreProduct }) {
             <input value={form.slug || slug} onChange={(e) => update("slug", e.target.value)} className="field-input" />
           </Field>
           <Field label="Category">
-            <select value={form.category} onChange={(e) => updateCategory(e.target.value as ProductCategory)} className="field-input">
-              {PRODUCT_CATEGORIES.map((category) => (
+            <select value={form.category} onChange={(e) => updateCategory(e.target.value)} className="field-input">
+              {availableCategories.map((category) => (
                 <option key={category}>{category}</option>
               ))}
             </select>
