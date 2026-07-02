@@ -13,7 +13,7 @@ export default function EditProductPage({ params }: { params: { slug: string } }
     setError("");
     setProduct(null);
 
-    adminFetch<{ product: StoreProduct }>(`/api/products/${params.slug}`)
+    adminFetch<{ product: StoreProduct }>(`/api/products/${encodeURIComponent(params.slug)}?admin=true`)
       .then((res) => setProduct(res.data.product))
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load product."));
   }, [params.slug]);

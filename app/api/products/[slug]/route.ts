@@ -30,8 +30,14 @@ async function findProductBySlugOrId(supabase: ReturnType<typeof getSupabaseAdmi
   return idQuery.maybeSingle();
 }
 
-export async function GET(_: Request, { params }: { params: { slug: string } }) {
+export async function GET(request: Request, { params }: { params: { slug: string } }) {
   try {
+    const adminView = new URL(request.url).searchParams.get("admin") === "true";
+    if (adminView) {
+      const unauthorized = await assertAdmin();
+      if (unauthorized) return unauthorized;
+    }
+
     const fallbackProduct = fallbackProducts.find(
       (product) => product.slug === params.slug || product._id === params.slug
     );
@@ -48,7 +54,7 @@ export async function GET(_: Request, { params }: { params: { slug: string } }) 
     }
 
     const supabase = getSupabaseAdmin();
-    const { data: product, error } = await findProductBySlugOrId(supabase, params.slug, true);
+    const { data: product, error } = await findProductBySlugOrId(supabase, params.slug, !adminView);
 
     if (error) throw error;
 
