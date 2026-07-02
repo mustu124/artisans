@@ -11,7 +11,7 @@ import {
 } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { fadeInScale, fadeInUp, staggerContainer } from "@/lib/animations";
 import { getDisplayMediaUrl } from "@/lib/media";
 
@@ -585,7 +585,8 @@ function CategoriesSection({ categories }: { categories: readonly (readonly [str
       </motion.div>
 
       <motion.div
-        className="mx-auto mt-10 grid w-full max-w-[96rem] grid-cols-2 place-items-start gap-x-4 gap-y-8 sm:mt-12 sm:grid-cols-3 sm:gap-x-6 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-5 xl:[grid-template-columns:repeat(auto-fit,minmax(130px,1fr))]"
+        className="category-grid mx-auto mt-10 grid w-full max-w-[96rem] place-items-start gap-x-4 gap-y-8 sm:mt-12 sm:gap-x-6 sm:gap-y-10"
+        style={{ "--category-columns": Math.min(Math.max(categories.length, 1), 10) } as CSSProperties}
         variants={sectionReveal}
       >
         {categories.map(([name, icon], index) => (
@@ -608,7 +609,7 @@ function CategoryCircle({
   index: number;
 }) {
   const [isHovered, setIsHovered] = useState(false);
-  const displayImageUrl = imageUrl ? getDisplayMediaUrl(imageUrl) : "";
+  const displayImageUrl = imageUrl ? getDisplayMediaUrl(imageUrl) : "/logo.png";
 
   return (
     <motion.a
@@ -640,20 +641,14 @@ function CategoryCircle({
           }}
         />
         <span className="absolute inset-0 overflow-hidden rounded-full bg-artisan-sand">
-          {displayImageUrl ? (
-            <motion.img
-              src={displayImageUrl}
-              alt={`${name} category`}
-              loading="lazy"
-              animate={{ scale: isHovered ? 1.09 : 1 }}
-              transition={{ duration: 0.45, ease: "easeOut" }}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <span className="flex h-full w-full items-center justify-center bg-white px-3 text-3xl font-bold text-artisan-terracotta">
-              {Array.from(icon).length <= 4 ? icon : name.charAt(0).toUpperCase()}
-            </span>
-          )}
+          <motion.img
+            src={displayImageUrl}
+            alt={`${name} category`}
+            loading="lazy"
+            animate={{ scale: isHovered ? 1.09 : 1 }}
+            transition={{ duration: 0.45, ease: "easeOut" }}
+            className={`h-full w-full ${imageUrl ? "object-cover" : "object-contain p-4"}`}
+          />
           <span className="absolute inset-0 bg-gradient-to-t from-artisan-brown/12 via-transparent to-white/8" />
         </span>
       </span>
