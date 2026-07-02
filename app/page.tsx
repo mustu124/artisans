@@ -531,17 +531,17 @@ function CategoriesSection({ categories }: { categories: readonly (readonly [str
   useEffect(() => {
     let isMounted = true;
 
-    fetch("/api/products?limit=50&sort=newest", { cache: "no-store" })
-      .then((response) => response.json())
-      .then((payload: { data?: { products?: Product[] } }) => {
-        const products = payload.data?.products ?? [];
-        const nextImages = products.reduce<Record<string, string>>((images, product) => {
-          const imageUrl = product.images?.[0]?.url;
-          if (product.category && imageUrl && !images[product.category]) {
-            images[product.category] = imageUrl;
-          }
-          return images;
-        }, {});
+    Promise.all(
+      categories.map(async ([name]) => {
+        const response = await fetch(`/api/products?category=${encodeURIComponent(name)}&limit=1&sort=newest`, {
+          cache: "no-store"
+        });
+        const payload = (await response.json()) as { data?: { products?: Product[] } };
+        return [name, payload.data?.products?.[0]?.images?.[0]?.url ?? ""] as const;
+      })
+    )
+      .then((categoryEntries) => {
+        const nextImages = Object.fromEntries(categoryEntries.filter(([, imageUrl]) => Boolean(imageUrl)));
 
         if (isMounted) setCategoryImages(nextImages);
       })
@@ -552,7 +552,7 @@ function CategoriesSection({ categories }: { categories: readonly (readonly [str
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [categories]);
 
   return (
     <motion.section
@@ -585,7 +585,7 @@ function CategoriesSection({ categories }: { categories: readonly (readonly [str
       </motion.div>
 
       <motion.div
-        className="mx-auto mt-10 flex max-w-[24rem] flex-wrap justify-center gap-x-[clamp(1rem,5vw,2rem)] gap-y-8 sm:mt-12 sm:max-w-5xl sm:gap-x-[clamp(1.75rem,4vw,3.25rem)] sm:gap-y-10 xl:max-w-[96rem] xl:gap-x-[clamp(2.25rem,3.2vw,4.25rem)]"
+        className="mx-auto mt-10 grid w-full max-w-[96rem] grid-cols-2 place-items-start gap-x-4 gap-y-8 sm:mt-12 sm:grid-cols-3 sm:gap-x-6 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-5 xl:[grid-template-columns:repeat(auto-fit,minmax(130px,1fr))]"
         variants={sectionReveal}
       >
         {categories.map(([name, icon], index) => (
@@ -627,7 +627,7 @@ function CategoryCircle({
         scale: 1.06
       }}
       whileTap={{ scale: 0.97 }}
-      className="group flex w-[clamp(96px,28vw,112px)] flex-col items-center gap-3 text-center sm:w-[128px] xl:w-[138px]"
+      className="group flex w-full min-w-0 flex-col items-center gap-3 text-center"
     >
       <span className="relative flex h-[clamp(92px,27vw,104px)] w-[clamp(92px,27vw,104px)] items-center justify-center rounded-full bg-white shadow-soft transition-shadow duration-200 group-hover:shadow-[0_18px_45px_rgba(196,113,74,0.34)] sm:h-[112px] sm:w-[112px] xl:h-[124px] xl:w-[124px]">
         <motion.span
@@ -650,7 +650,9 @@ function CategoryCircle({
               className="h-full w-full object-cover"
             />
           ) : (
-            <span className="flex h-full w-full items-center justify-center bg-white text-3xl">{icon}</span>
+            <span className="flex h-full w-full items-center justify-center bg-white px-3 text-3xl font-bold text-artisan-terracotta">
+              {Array.from(icon).length <= 4 ? icon : name.charAt(0).toUpperCase()}
+            </span>
           )}
           <span className="absolute inset-0 bg-gradient-to-t from-artisan-brown/12 via-transparent to-white/8" />
         </span>
