@@ -5,7 +5,7 @@ import type { StoreProduct } from "@/lib/product-data";
 
 const CART_STORAGE_KEY = "artisan-root-cart";
 
-export type CartProduct = Pick<StoreProduct, "_id" | "name" | "slug" | "price" | "images"> & {
+export type CartProduct = Pick<StoreProduct, "_id" | "name" | "slug" | "price" | "images" | "stockCount"> & {
   category: string;
 };
 
@@ -66,7 +66,8 @@ function normalizeCartProduct(product: CartProduct | LegacyCartInput): CartProdu
     slug: product.slug ?? product.productId,
     category: product.category ?? "Macrame",
     price: product.price,
-    images: product.imageUrl ? [{ url: product.imageUrl, alt: product.name }] : []
+    images: product.imageUrl ? [{ url: product.imageUrl, alt: product.name }] : [],
+    stockCount: Infinity
   };
 }
 
@@ -75,16 +76,20 @@ function cartReducer(state: CartState, action: CartAction): CartState {
     case "hydrate":
       return { items: action.items };
     case "add": {
+      const stockLimit = action.product.stockCount ?? Infinity;
       const incomingKey = getCartKey(action.product._id, action.selectedVariant);
       const existingItem = state.items.find(
         (item) => getCartKey(item.product._id, item.selectedVariant) === incomingKey
       );
+      const currentQuantity = existingItem?.quantity ?? 0;
+      const nextQuantity = Math.min(currentQuantity + action.quantity, stockLimit);
+      if (nextQuantity <= currentQuantity) return state;
 
       if (existingItem) {
         return {
           items: state.items.map((item) =>
             getCartKey(item.product._id, item.selectedVariant) === incomingKey
-              ? { ...item, quantity: item.quantity + action.quantity }
+              ? { ...item, quantity: nextQuantity }
               : item
           )
         };
@@ -95,7 +100,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
           ...state.items,
           {
             product: action.product,
-            quantity: action.quantity,
+            quantity: nextQuantity,
             selectedVariant: action.selectedVariant
           }
         ]
@@ -122,7 +127,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         items: state.items.map((item) =>
           getCartKey(item.product._id, item.selectedVariant) ===
           getCartKey(action.productId, action.selectedVariant)
-            ? { ...item, quantity: action.quantity }
+            ? { ...item, quantity: Math.min(action.quantity, item.product.stockCount ?? Infinity) }
             : item
         )
       };

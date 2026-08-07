@@ -162,14 +162,20 @@ export function CartSidebar() {
                             <button
                               type="button"
                               aria-label={`Increase ${item.product.name} quantity`}
+                              disabled={item.quantity >= item.product.stockCount}
                               onClick={() =>
                                 updateQuantity(item.product._id, item.quantity + 1, item.selectedVariant)
                               }
-                              className="h-8 w-8 font-black"
+                              className="h-8 w-8 font-black disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               +
                             </button>
                           </div>
+                          {item.quantity >= item.product.stockCount && (
+                            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-artisan-terracotta">
+                              Max stock reached
+                            </p>
+                          )}
                         </div>
                       </motion.article>
                     ))}

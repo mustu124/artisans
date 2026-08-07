@@ -39,7 +39,7 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<StoreProduct | null>(null);
   const [isAdded, setIsAdded] = useState(false);
-  const { addItem } = useCart();
+  const { addItem, items } = useCart();
 
   useEffect(() => {
     let isMounted = true;
@@ -51,6 +51,7 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
         if (!isMounted || !nextProduct) return;
         setProduct(nextProduct);
         setSelectedVariant(nextProduct.variants?.[0] ?? "");
+        setQuantity(1);
       })
       .catch(() => setProduct(null));
 
@@ -99,6 +100,12 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
       </main>
     );
   }
+
+  const cartQuantity = items
+    .filter((item) => item.product._id === product._id)
+    .reduce((total, item) => total + item.quantity, 0);
+  const remainingStock = Math.max(product.stockCount - cartQuantity, 0);
+  const canAddToCart = product.inStock && quantity <= remainingStock;
 
   return (
     <main className="min-h-screen bg-artisan-cream pb-20 pt-28">
@@ -255,7 +262,12 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
                 -
               </button>
               <span className="w-10 text-center font-black">{quantity}</span>
-              <button type="button" onClick={() => setQuantity((value) => value + 1)} className="h-11 w-11 font-black">
+              <button
+                type="button"
+                disabled={quantity >= remainingStock}
+                onClick={() => setQuantity((value) => Math.min(remainingStock, value + 1))}
+                className="h-11 w-11 font-black disabled:cursor-not-allowed disabled:opacity-40"
+              >
                 +
               </button>
             </div>
@@ -267,10 +279,10 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
           <div className="mt-7 grid gap-3 sm:grid-cols-2">
             <motion.button
               type="button"
-              whileHover={product.inStock ? { y: -2 } : undefined}
-              whileTap={product.inStock ? { scale: 0.98 } : undefined}
+              whileHover={canAddToCart ? { y: -2 } : undefined}
+              whileTap={canAddToCart ? { scale: 0.98 } : undefined}
               animate={{ backgroundColor: isAdded ? "#1fa855" : "#c4714a" }}
-              disabled={!product.inStock}
+              disabled={!canAddToCart}
               onClick={() => {
                 addItem(product, quantity, selectedVariant);
                 setIsAdded(true);
@@ -278,13 +290,19 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
               }}
               className="rounded-full px-6 py-4 text-sm font-black uppercase tracking-[0.14em] text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isAdded ? "✓ Added!" : product.inStock ? "Add to Cart" : "Out of Stock"}
+              {isAdded
+                ? "✓ Added!"
+                : !product.inStock
+                  ? "Out of Stock"
+                  : remainingStock <= 0
+                    ? "Max in Cart"
+                    : "Add to Cart"}
             </motion.button>
             <motion.button
               type="button"
-              whileHover={product.inStock ? { y: -2 } : undefined}
-              whileTap={product.inStock ? { scale: 0.98 } : undefined}
-              disabled={!product.inStock}
+              whileHover={canAddToCart ? { y: -2 } : undefined}
+              whileTap={canAddToCart ? { scale: 0.98 } : undefined}
+              disabled={!canAddToCart}
               onClick={() => {
                 addItem(product, quantity, selectedVariant);
                 window.dispatchEvent(new CustomEvent("artisan-root:start-checkout"));

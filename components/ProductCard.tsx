@@ -46,8 +46,10 @@ export function ProductCard({ product, onQuickView, onMoreLikeThis }: ProductCar
     setIsWishlisted(nextWishlist.includes(product._id));
   };
 
+  const maxedOut = cartQuantity >= product.stockCount;
+
   const handleAddToCart = () => {
-    if (!product.inStock) return;
+    if (!product.inStock || maxedOut) return;
     addItem(product);
     setIsAdded(true);
     window.setTimeout(() => setIsAdded(false), 1200);
@@ -104,13 +106,13 @@ export function ProductCard({ product, onQuickView, onMoreLikeThis }: ProductCar
           <motion.button
             type="button"
             onClick={handleAddToCart}
-            disabled={!product.inStock}
+            disabled={!product.inStock || maxedOut}
             animate={{ backgroundColor: isAdded ? "#1fa855" : "#c4714a" }}
-            whileHover={product.inStock ? { scale: 1.02 } : undefined}
-            whileTap={product.inStock ? { scale: 0.97 } : undefined}
+            whileHover={product.inStock && !maxedOut ? { scale: 1.02 } : undefined}
+            whileTap={product.inStock && !maxedOut ? { scale: 0.97 } : undefined}
             className="w-full rounded-full bg-artisan-terracotta px-3 py-2.5 text-[10px] font-black uppercase leading-tight tracking-[0.1em] text-white shadow-[0_12px_30px_rgba(92,45,10,0.24)] focus:outline-none focus:ring-2 focus:ring-white disabled:cursor-not-allowed disabled:bg-stone-400 sm:px-4 sm:py-3 sm:text-xs sm:tracking-[0.14em]"
           >
-            {isAdded ? "✓ Added!" : product.inStock ? "Add to Cart" : "Out of Stock"}
+            {isAdded ? "✓ Added!" : !product.inStock ? "Out of Stock" : maxedOut ? "Max in Cart" : "Add to Cart"}
           </motion.button>
         </motion.div>
       </div>

@@ -18,6 +18,7 @@ import { getDisplayMediaUrl } from "@/lib/media";
 type Product = {
   _id: string;
   name: string;
+  slug: string;
   isFeatured?: boolean;
   featured?: boolean;
   category: string;
@@ -26,6 +27,8 @@ type Product = {
     url: string;
     alt: string;
   }>;
+  inStock: boolean;
+  stockCount: number;
 };
 
 type PublicSettings = {
@@ -763,20 +766,24 @@ function FeaturedProducts() {
               <div className="mt-auto flex items-center gap-2 pt-1">
                 <motion.button
                   type="button"
+                  disabled={!product.inStock || cartQuantity >= product.stockCount}
                   onClick={() =>
                     addItem({
-                      productId: product._id,
+                      _id: product._id,
                       name: displayName,
+                      slug: product.slug,
+                      category: product.category,
                       price: product.price,
-                      imageUrl: getDisplayMediaUrl(product.images?.[0]?.url)
+                      images: product.images,
+                      stockCount: product.stockCount
                     })
                   }
-                  whileHover={{ scale: 1.03, backgroundColor: "#c4714a" }}
-                  whileTap={{ scale: 0.97 }}
-                  className="flex-1 rounded-full bg-artisan-brown px-3 py-2.5 text-[10px] font-black uppercase leading-tight tracking-[0.1em] text-white sm:px-4 sm:text-xs sm:tracking-[0.12em]"
+                  whileHover={product.inStock && cartQuantity < product.stockCount ? { scale: 1.03, backgroundColor: "#c4714a" } : undefined}
+                  whileTap={product.inStock && cartQuantity < product.stockCount ? { scale: 0.97 } : undefined}
+                  className="flex-1 rounded-full bg-artisan-brown px-3 py-2.5 text-[10px] font-black uppercase leading-tight tracking-[0.1em] text-white disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:text-xs sm:tracking-[0.12em]"
                 >
-                  <span className="sm:hidden">Add</span>
-                  <span className="hidden sm:inline">Add to Cart</span>
+                  <span className="sm:hidden">{!product.inStock ? "Sold Out" : "Add"}</span>
+                  <span className="hidden sm:inline">{!product.inStock ? "Out of Stock" : "Add to Cart"}</span>
                 </motion.button>
                 <motion.button
                   type="button"
