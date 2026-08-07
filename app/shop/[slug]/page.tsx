@@ -267,27 +267,29 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
           <div className="mt-7 grid gap-3 sm:grid-cols-2">
             <motion.button
               type="button"
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.98 }}
+              whileHover={product.inStock ? { y: -2 } : undefined}
+              whileTap={product.inStock ? { scale: 0.98 } : undefined}
               animate={{ backgroundColor: isAdded ? "#1fa855" : "#c4714a" }}
+              disabled={!product.inStock}
               onClick={() => {
                 addItem(product, quantity, selectedVariant);
                 setIsAdded(true);
                 window.setTimeout(() => setIsAdded(false), 1200);
               }}
-              className="rounded-full px-6 py-4 text-sm font-black uppercase tracking-[0.14em] text-white"
+              className="rounded-full px-6 py-4 text-sm font-black uppercase tracking-[0.14em] text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isAdded ? "✓ Added!" : "Add to Cart"}
+              {isAdded ? "✓ Added!" : product.inStock ? "Add to Cart" : "Out of Stock"}
             </motion.button>
             <motion.button
               type="button"
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.98 }}
+              whileHover={product.inStock ? { y: -2 } : undefined}
+              whileTap={product.inStock ? { scale: 0.98 } : undefined}
+              disabled={!product.inStock}
               onClick={() => {
                 addItem(product, quantity, selectedVariant);
                 window.dispatchEvent(new CustomEvent("artisan-root:start-checkout"));
               }}
-              className="rounded-full border border-artisan-brown px-6 py-4 text-center text-sm font-black uppercase tracking-[0.14em] text-artisan-brown"
+              className="rounded-full border border-artisan-brown px-6 py-4 text-center text-sm font-black uppercase tracking-[0.14em] text-artisan-brown disabled:cursor-not-allowed disabled:opacity-50"
             >
               Buy Now
             </motion.button>

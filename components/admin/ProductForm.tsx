@@ -205,7 +205,15 @@ export function ProductForm({ product }: { product?: StoreProduct }) {
             <input type="number" value={form.originalPrice ?? 0} onChange={(e) => update("originalPrice", Number(e.target.value))} className="field-input" />
           </Field>
           <Field label="Stock Count">
-            <input type="number" value={form.stockCount ?? 0} onChange={(e) => update("stockCount", Number(e.target.value))} className="field-input" />
+            <input
+              type="number"
+              value={form.stockCount ?? 0}
+              onChange={(e) => {
+                const stockCount = Number(e.target.value);
+                setForm((current) => ({ ...current, stockCount, inStock: stockCount > 0 }));
+              }}
+              className="field-input"
+            />
           </Field>
         </div>
         <Field label="Description">
@@ -234,7 +242,15 @@ export function ProductForm({ product }: { product?: StoreProduct }) {
         </Field>
         <div className="flex flex-wrap gap-4">
           <label className="flex items-center gap-2 font-bold"><input type="checkbox" checked={Boolean(form.isFeatured)} onChange={(e) => update("isFeatured", e.target.checked)} /> Featured</label>
-          <label className="flex items-center gap-2 font-bold"><input type="checkbox" checked={Boolean(form.inStock)} onChange={(e) => update("inStock", e.target.checked)} /> In Stock</label>
+          <label className={`flex items-center gap-2 font-bold ${(form.stockCount ?? 0) <= 0 ? "opacity-50" : ""}`}>
+            <input
+              type="checkbox"
+              checked={Boolean(form.inStock) && (form.stockCount ?? 0) > 0}
+              disabled={(form.stockCount ?? 0) <= 0}
+              onChange={(e) => update("inStock", e.target.checked)}
+            />
+            In Stock {(form.stockCount ?? 0) <= 0 && "(set Stock Count above 0 to enable)"}
+          </label>
         </div>
       </div>
 

@@ -47,6 +47,7 @@ export function ProductCard({ product, onQuickView, onMoreLikeThis }: ProductCar
   };
 
   const handleAddToCart = () => {
+    if (!product.inStock) return;
     addItem(product);
     setIsAdded(true);
     window.setTimeout(() => setIsAdded(false), 1200);
@@ -76,6 +77,12 @@ export function ProductCard({ product, onQuickView, onMoreLikeThis }: ProductCar
           </motion.div>
         </Link>
 
+        {!product.inStock && (
+          <span className="absolute left-2 top-2 z-10 rounded-full bg-artisan-brown px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-white sm:left-3 sm:top-3">
+            Out of Stock
+          </span>
+        )}
+
         <motion.button
           type="button"
           aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
@@ -97,12 +104,13 @@ export function ProductCard({ product, onQuickView, onMoreLikeThis }: ProductCar
           <motion.button
             type="button"
             onClick={handleAddToCart}
+            disabled={!product.inStock}
             animate={{ backgroundColor: isAdded ? "#1fa855" : "#c4714a" }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
-            className="w-full rounded-full bg-artisan-terracotta px-3 py-2.5 text-[10px] font-black uppercase leading-tight tracking-[0.1em] text-white shadow-[0_12px_30px_rgba(92,45,10,0.24)] focus:outline-none focus:ring-2 focus:ring-white sm:px-4 sm:py-3 sm:text-xs sm:tracking-[0.14em]"
+            whileHover={product.inStock ? { scale: 1.02 } : undefined}
+            whileTap={product.inStock ? { scale: 0.97 } : undefined}
+            className="w-full rounded-full bg-artisan-terracotta px-3 py-2.5 text-[10px] font-black uppercase leading-tight tracking-[0.1em] text-white shadow-[0_12px_30px_rgba(92,45,10,0.24)] focus:outline-none focus:ring-2 focus:ring-white disabled:cursor-not-allowed disabled:bg-stone-400 sm:px-4 sm:py-3 sm:text-xs sm:tracking-[0.14em]"
           >
-            {isAdded ? "✓ Added!" : "Add to Cart"}
+            {isAdded ? "✓ Added!" : product.inStock ? "Add to Cart" : "Out of Stock"}
           </motion.button>
         </motion.div>
       </div>

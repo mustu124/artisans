@@ -49,7 +49,7 @@ export function productPayloadToSupabase(payload: AnyRecord) {
     shipping_info: payload.shippingInfo ?? "",
     is_featured: Boolean(payload.isFeatured ?? payload.featured),
     featured: Boolean(payload.featured ?? payload.isFeatured),
-    in_stock: payload.inStock ?? true,
+    in_stock: Number(payload.stockCount ?? payload.inventory ?? 0) > 0 && (payload.inStock ?? true) !== false,
     stock_count: Number(payload.stockCount ?? payload.inventory ?? 0),
     inventory: Number(payload.inventory ?? payload.stockCount ?? 0),
     active: payload.active ?? true,
